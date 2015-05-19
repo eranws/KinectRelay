@@ -29,7 +29,7 @@ color[]       userClr = new color[] {
 PVector com = new PVector();                                   
 PVector com2d = new PVector();                                   
 
-int pin = 13;
+int pin = 12;
 
 
 void setup()
@@ -106,9 +106,13 @@ void draw()
       context.convertRealWorldToProjective(joint1Pos, joint1_2d);
       context.convertRealWorldToProjective(joint2Pos, joint2_2d);
 
-      if (joint2Pos.z - joint1Pos.z > 50)
+      if (joint1Pos.z - joint2Pos.z > 250)
       {
         arduino.digitalWrite(pin, Arduino.HIGH);
+      }
+      else
+      {
+         arduino.digitalWrite(pin, Arduino.LOW);
       }
 
       stroke(255, 255, 0);

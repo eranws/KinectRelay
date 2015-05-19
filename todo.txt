@@ -1,0 +1,3 @@
+switch movie when someone goes into spot
+user manager: only at spot location (gui)
+limit activation time (pulses)
