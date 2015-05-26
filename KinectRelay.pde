@@ -26,8 +26,37 @@ color[]       userClr = new color[] {
   color(255, 0, 255), 
   color(0, 255, 255)
 };
+
+
 PVector com = new PVector();                                   
 PVector com2d = new PVector();                                   
+
+
+
+final int SKEL_HEAD = 0;
+final int SKEL_NECK = 1;
+final int SKEL_LEFT_SHOULDER = 2;
+final int SKEL_LEFT_ELBOW = 3;
+final int SKEL_LEFT_HAND = 4;
+final int SKEL_RIGHT_SHOULDER = 5;
+final int SKEL_RIGHT_ELBOW = 6;
+final int SKEL_RIGHT_HAND = 7;
+
+final int SKEL_TORSO = 8;
+final int SKEL_LEFT_HIP = 9; 
+final int SKEL_LEFT_KNEE = 10;
+final int SKEL_LEFT_FOOT = 11;
+
+final int SKEL_RIGHT_HIP = 12;
+final int SKEL_RIGHT_KNEE = 13;
+final int SKEL_RIGHT_FOOT = 14;
+
+final int SKEL_COUNT = 15;
+
+int[] joints = new int[SKEL_COUNT];
+PVector[] jointPos = new PVector[SKEL_COUNT];
+boolean[] jointValid = new boolean[SKEL_COUNT];
+
 
 int pin = 12;
 
@@ -44,11 +73,38 @@ void setup()
     return;
   }
 
+  context.setMirror(true);
   // enable depthMap generation 
   context.enableDepth();
 
   // enable skeleton generation for all joints
   context.enableUser();
+
+
+  joints[SKEL_HEAD] = SimpleOpenNI.SKEL_HEAD;
+  joints[SKEL_NECK] = SimpleOpenNI.SKEL_NECK;
+
+  joints[SKEL_LEFT_SHOULDER] = SimpleOpenNI.SKEL_LEFT_SHOULDER;
+  joints[SKEL_LEFT_ELBOW] = SimpleOpenNI.SKEL_LEFT_ELBOW;
+
+  joints[SKEL_RIGHT_SHOULDER] = SimpleOpenNI.SKEL_RIGHT_SHOULDER;
+  joints[SKEL_RIGHT_ELBOW] = SimpleOpenNI.SKEL_RIGHT_ELBOW;
+
+  joints[SKEL_TORSO] = SimpleOpenNI.SKEL_TORSO;
+
+  joints[SKEL_LEFT_HIP] = SimpleOpenNI.SKEL_LEFT_HIP;
+  joints[SKEL_LEFT_KNEE] = SimpleOpenNI.SKEL_LEFT_KNEE;
+
+  joints[SKEL_RIGHT_HIP] = SimpleOpenNI.SKEL_RIGHT_HIP;
+  joints[SKEL_RIGHT_KNEE] = SimpleOpenNI.SKEL_RIGHT_KNEE;
+
+
+  for(int i = 0; i < SKEL_COUNT; i++)
+  {
+    jointPos[i] = new PVector();
+  }
+
+
 
   arduino = new Arduino(this, Arduino.list()[0], 57600);
   // Set the Arduino digital pins as outputs.
@@ -88,25 +144,28 @@ void draw()
       drawSkeleton(userList[i]);
     }  
 
+    // if in spot
+
+
     int userId = userList[i];
-    int joint1 = SimpleOpenNI.SKEL_HEAD;
-    int joint2 = SimpleOpenNI.SKEL_RIGHT_HAND;
 
-    PVector joint1Pos = new PVector();
-    PVector joint2Pos = new PVector();
-
-    float conf1 = context.getJointPositionSkeleton(userId, joint1, joint1Pos);
-    float conf2 = context.getJointPositionSkeleton(userId, joint2, joint2Pos);
-
-    if (conf1 > 0.5 && conf2 > 0.5)
+    for(int j = 0; j < SKEL_COUNT; j++)
     {
+      float confidence = context.getJointPositionSkeleton(userId, joints[j], jointPos[j]);
+      jointValid[j] = confidence > 0.5;
+
+    }
+
+    if (jointValid[SKEL_HEAD] && jointValid[SKEL_RIGHT_HAND])
+    {
+
       PVector joint1_2d = new PVector();
       PVector joint2_2d = new PVector();
 
-      context.convertRealWorldToProjective(joint1Pos, joint1_2d);
-      context.convertRealWorldToProjective(joint2Pos, joint2_2d);
+      //context.convertRealWorldToProjective(joint1Pos, joint1_2d);
+      //context.convertRealWorldToProjective(joint2Pos, joint2_2d);
 
-      if (joint1Pos.z - joint2Pos.z > 250)
+      if (jointPos[SKEL_HEAD].z - jointPos[SKEL_RIGHT_HAND].z > 250)
       {
         arduino.digitalWrite(pin, Arduino.HIGH);
       }
@@ -117,7 +176,7 @@ void draw()
 
       stroke(255, 255, 0);
       strokeWeight(2);
-      line(joint1_2d.x, joint1_2d.y, joint2_2d.x, joint2_2d.y);
+      //line(joint1_2d.x, joint1_2d.y, joint2_2d.x, joint2_2d.y);
     }
 
     // draw the center of mass
