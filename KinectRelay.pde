@@ -9,16 +9,16 @@
  * ----------------------------------------------------------------------------
  */
 
-import SimpleOpenNI.*;
+ import SimpleOpenNI.*;
 
-import processing.serial.*;
+ import processing.serial.*;
 
-import cc.arduino.*;
+ import cc.arduino.*;
 
-Arduino arduino;
+ Arduino arduino;
 
-SimpleOpenNI  context;
-color[]       userClr = new color[] { 
+ SimpleOpenNI  context;
+ color[]       userClr = new color[] { 
   color(255, 0, 0), 
   color(0, 255, 0), 
   color(0, 0, 255), 
@@ -56,6 +56,20 @@ final int SKEL_COUNT = 15;
 int[] joints = new int[SKEL_COUNT];
 PVector[] jointPos = new PVector[SKEL_COUNT];
 boolean[] jointValid = new boolean[SKEL_COUNT];
+
+
+final int GESTURE_HAND_HAIR = 0;
+final int GESTURE_HAND_CHIN = 1;
+final int GESTURE_TWO_HANDS_EARS = 2;
+final int GESTURE_HAND_FAR_FROM_BODY = 3;
+
+final int GESTURE_COUNT = 4;
+
+boolean gestureState[] = new boolean[GESTURE_COUNT];
+String gestureName[] = new String[GESTURE_COUNT];
+
+
+
 
 
 int pin = 12;
@@ -109,6 +123,12 @@ void setup()
   }
 
 
+  gestureName[GESTURE_HAND_HAIR] = "hand in hair";
+  gestureName[GESTURE_HAND_CHIN] = "hand on chin";
+  gestureName[GESTURE_TWO_HANDS_EARS] = "two hand in ears";
+  gestureName[GESTURE_HAND_FAR_FROM_BODY] = "hand far from body";
+
+
 
   arduino = new Arduino(this, Arduino.list()[0], 57600);
   // Set the Arduino digital pins as outputs.
@@ -121,7 +141,7 @@ void setup()
   background(200, 0, 0);
 
   stroke(0, 0, 255);
-  strokeWeight(3);
+  strokeWeight(6);
   smooth();
 }
 
@@ -133,7 +153,7 @@ void draw()
   context.update();
 
   // draw depthImageMap
-  image(context.depthImage(), 0, 0);
+  //image(context.depthImage(), 0, 0);
   image(context.userImage(), 0, 0);
   PVector comAvg = new PVector(0.0, 0.0);
 
@@ -157,29 +177,31 @@ void draw()
     {
       float confidence = context.getJointPositionSkeleton(userId, joints[j], jointPos[j]);
       jointValid[j] = confidence > 0.5;
-
     }
 
     if (jointValid[SKEL_HEAD] && jointValid[SKEL_RIGHT_HAND])
     {
 
-      PVector joint1_2d = new PVector();
-      PVector joint2_2d = new PVector();
+      //PVector joint1_2d = new PVector();
+      //PVector joint2_2d = new PVector();
 
       //context.convertRealWorldToProjective(joint1Pos, joint1_2d);
       //context.convertRealWorldToProjective(joint2Pos, joint2_2d);
 
-      if (jointPos[SKEL_HEAD].z - jointPos[SKEL_RIGHT_HAND].z > 250)
+      float diff = jointPos[SKEL_HEAD].z - jointPos[SKEL_RIGHT_HAND].z;
+      if (diff > 200)
       {
-        arduino.digitalWrite(pin, Arduino.HIGH);
+        gestureState[GESTURE_HAND_FAR_FROM_BODY] = true;
+        //arduino.digitalWrite(pin, Arduino.HIGH);
       }
       else
       {
-         arduino.digitalWrite(pin, Arduino.LOW);
-      }
+        gestureState[GESTURE_HAND_FAR_FROM_BODY] = false;
+       //arduino.digitalWrite(pin, Arduino.LOW);
+     }
 
-      stroke(255, 255, 0);
-      strokeWeight(2);
+     //stroke(255, 255, 0);
+     //strokeWeight(2);
       //line(joint1_2d.x, joint1_2d.y, joint2_2d.x, joint2_2d.y);
     }
 
@@ -188,7 +210,7 @@ void draw()
     {
       context.convertRealWorldToProjective(com, com2d);
       stroke(100, 255, 0);
-      strokeWeight(1);
+      //strokeWeight(1);
       beginShape(LINES);
       vertex(com2d.x, com2d.y - 5);
       vertex(com2d.x, com2d.y + 5);
@@ -201,6 +223,34 @@ void draw()
       text(Integer.toString(userList[i]), com2d.x, com2d.y);
     }
   }
+
+
+//draw UI
+for (int g=0; g < GESTURE_COUNT; g++)
+{
+  int rectHeight = 30;
+  int rectWidth = 200;
+  int rectX = 50;
+  int rectY = 50;
+
+  int x = rectX;
+  int y = rectY + (rectHeight + 10) * g;
+
+  color onColor = color(255, 0, 0);
+  color offColor = color(50, 50, 50);
+
+  fill(gestureState[g] ? onColor : offColor);
+  stroke(0);
+
+  rect(x, y, rectWidth, rectHeight);
+
+  fill(255);
+  text(gestureName[g], x, y + rectHeight/2);
+
+  //println("var: "+ gestureState[GESTURE_HAND_FAR_FROM_BODY]);
+}
+
+
 
   //update arduino
 }
@@ -215,27 +265,27 @@ void drawSkeleton(int userId)
    println(jointPos);
    */
 
-  context.drawLimb(userId, SimpleOpenNI.SKEL_HEAD, SimpleOpenNI.SKEL_NECK);
+   context.drawLimb(userId, SimpleOpenNI.SKEL_HEAD, SimpleOpenNI.SKEL_NECK);
 
-  context.drawLimb(userId, SimpleOpenNI.SKEL_NECK, SimpleOpenNI.SKEL_LEFT_SHOULDER);
-  context.drawLimb(userId, SimpleOpenNI.SKEL_LEFT_SHOULDER, SimpleOpenNI.SKEL_LEFT_ELBOW);
-  context.drawLimb(userId, SimpleOpenNI.SKEL_LEFT_ELBOW, SimpleOpenNI.SKEL_LEFT_HAND);
+   context.drawLimb(userId, SimpleOpenNI.SKEL_NECK, SimpleOpenNI.SKEL_LEFT_SHOULDER);
+   context.drawLimb(userId, SimpleOpenNI.SKEL_LEFT_SHOULDER, SimpleOpenNI.SKEL_LEFT_ELBOW);
+   context.drawLimb(userId, SimpleOpenNI.SKEL_LEFT_ELBOW, SimpleOpenNI.SKEL_LEFT_HAND);
 
-  context.drawLimb(userId, SimpleOpenNI.SKEL_NECK, SimpleOpenNI.SKEL_RIGHT_SHOULDER);
-  context.drawLimb(userId, SimpleOpenNI.SKEL_RIGHT_SHOULDER, SimpleOpenNI.SKEL_RIGHT_ELBOW);
-  context.drawLimb(userId, SimpleOpenNI.SKEL_RIGHT_ELBOW, SimpleOpenNI.SKEL_RIGHT_HAND);
+   context.drawLimb(userId, SimpleOpenNI.SKEL_NECK, SimpleOpenNI.SKEL_RIGHT_SHOULDER);
+   context.drawLimb(userId, SimpleOpenNI.SKEL_RIGHT_SHOULDER, SimpleOpenNI.SKEL_RIGHT_ELBOW);
+   context.drawLimb(userId, SimpleOpenNI.SKEL_RIGHT_ELBOW, SimpleOpenNI.SKEL_RIGHT_HAND);
 
-  context.drawLimb(userId, SimpleOpenNI.SKEL_LEFT_SHOULDER, SimpleOpenNI.SKEL_TORSO);
-  context.drawLimb(userId, SimpleOpenNI.SKEL_RIGHT_SHOULDER, SimpleOpenNI.SKEL_TORSO);
+   context.drawLimb(userId, SimpleOpenNI.SKEL_LEFT_SHOULDER, SimpleOpenNI.SKEL_TORSO);
+   context.drawLimb(userId, SimpleOpenNI.SKEL_RIGHT_SHOULDER, SimpleOpenNI.SKEL_TORSO);
 
-  context.drawLimb(userId, SimpleOpenNI.SKEL_TORSO, SimpleOpenNI.SKEL_LEFT_HIP);
-  context.drawLimb(userId, SimpleOpenNI.SKEL_LEFT_HIP, SimpleOpenNI.SKEL_LEFT_KNEE);
-  context.drawLimb(userId, SimpleOpenNI.SKEL_LEFT_KNEE, SimpleOpenNI.SKEL_LEFT_FOOT);
+   context.drawLimb(userId, SimpleOpenNI.SKEL_TORSO, SimpleOpenNI.SKEL_LEFT_HIP);
+   context.drawLimb(userId, SimpleOpenNI.SKEL_LEFT_HIP, SimpleOpenNI.SKEL_LEFT_KNEE);
+   context.drawLimb(userId, SimpleOpenNI.SKEL_LEFT_KNEE, SimpleOpenNI.SKEL_LEFT_FOOT);
 
-  context.drawLimb(userId, SimpleOpenNI.SKEL_TORSO, SimpleOpenNI.SKEL_RIGHT_HIP);
-  context.drawLimb(userId, SimpleOpenNI.SKEL_RIGHT_HIP, SimpleOpenNI.SKEL_RIGHT_KNEE);
-  context.drawLimb(userId, SimpleOpenNI.SKEL_RIGHT_KNEE, SimpleOpenNI.SKEL_RIGHT_FOOT);
-}
+   context.drawLimb(userId, SimpleOpenNI.SKEL_TORSO, SimpleOpenNI.SKEL_RIGHT_HIP);
+   context.drawLimb(userId, SimpleOpenNI.SKEL_RIGHT_HIP, SimpleOpenNI.SKEL_RIGHT_KNEE);
+   context.drawLimb(userId, SimpleOpenNI.SKEL_RIGHT_KNEE, SimpleOpenNI.SKEL_RIGHT_FOOT);
+ }
 
 // -----------------------------------------------------------------
 // SimpleOpenNI events
@@ -263,7 +313,7 @@ void keyPressed()
 {
   switch(key)
   {
-  case ' ':
+    case ' ':
     context.setMirror(!context.mirror());
     break;
   }
