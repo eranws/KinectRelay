@@ -63,7 +63,11 @@ final int GESTURE_HAND_CHIN = 1;
 final int GESTURE_TWO_HANDS_EARS = 2;
 final int GESTURE_HAND_FAR_FROM_BODY = 3;
 
-final int GESTURE_COUNT = 4;
+final int GESTURE_SINGLE_HAND_CIRCLES = 4;
+final int GESTURE_TWO_HANDS_GOING_UP = 5;
+final int GESTURE_FULL_BODY_TWIST = 6;
+
+final int GESTURE_COUNT = 7;
 
 boolean gestureState[] = new boolean[GESTURE_COUNT];
 String gestureName[] = new String[GESTURE_COUNT];
@@ -127,7 +131,9 @@ void setup()
   gestureName[GESTURE_HAND_CHIN] = "hand on chin";
   gestureName[GESTURE_TWO_HANDS_EARS] = "two hand in ears";
   gestureName[GESTURE_HAND_FAR_FROM_BODY] = "hand far from body";
-
+  gestureName[GESTURE_SINGLE_HAND_CIRCLES] = "Single hand Circles";
+  gestureName[GESTURE_TWO_HANDS_GOING_UP]  = "two hands going up";
+  gestureName[GESTURE_FULL_BODY_TWIST] = "full body twist";
 
 
   arduino = new Arduino(this, Arduino.list()[0], 57600);
@@ -205,24 +211,13 @@ void draw()
       //line(joint1_2d.x, joint1_2d.y, joint2_2d.x, joint2_2d.y);
     }
 
-    // draw the center of mass
-    if (context.getCoM(userList[i], com))
-    {
-      context.convertRealWorldToProjective(com, com2d);
-      stroke(100, 255, 0);
-      //strokeWeight(1);
-      beginShape(LINES);
-      vertex(com2d.x, com2d.y - 5);
-      vertex(com2d.x, com2d.y + 5);
+    // update conductor: check gestureState and activate pins
+    // todo: patterns, pulses, etc.
 
-      vertex(com2d.x - 5, com2d.y);
-      vertex(com2d.x + 5, com2d.y);
-      endShape();
 
-      fill(0, 255, 100);
-      text(Integer.toString(userList[i]), com2d.x, com2d.y);
-    }
-  }
+
+
+}
 
 
 //draw UI
