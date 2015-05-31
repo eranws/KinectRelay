@@ -294,7 +294,12 @@ void draw()
 
     if (jointValid[SKEL_HEAD] && jointValid[SKEL_LEFT_HAND])
     {
+      
+      float diffX = jointPos[SKEL_HEAD].x - jointPos[SKEL_LEFT_HAND].x;
+      float diffY = jointPos[SKEL_HEAD].y - jointPos[SKEL_LEFT_HAND].y;
       float diffZ = jointPos[SKEL_HEAD].z - jointPos[SKEL_LEFT_HAND].z;
+
+
       if (diffZ > GESTURE_HAND_FAR_FROM_BODY_THRESHOLD)
       {
         gestureState[GESTURE_LEFT_HAND_FAR_FROM_BODY] = true;
@@ -303,6 +308,22 @@ void draw()
       {
         gestureState[GESTURE_LEFT_HAND_FAR_FROM_BODY] = false;
       }
+
+
+      if (diffZ > 0 && diffZ < GESTURE_HAND_FAR_FROM_BODY_THRESHOLD 
+        && abs(diffX) < 100
+        && diffY > 100
+        && diffY < 300
+
+        )
+      {
+        gestureState[GESTURE_LEFT_HAND_CHIN] = true;
+      }
+      else
+      {
+       gestureState[GESTURE_LEFT_HAND_CHIN] = false; 
+      }
+
     }
 
 
