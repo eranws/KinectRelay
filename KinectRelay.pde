@@ -19,20 +19,15 @@
 
  SimpleOpenNI  context;
  color[]       userClr = new color[] { 
-  color(255, 0, 0), 
-  color(0, 255, 0), 
-  color(0, 0, 255), 
-  color(255, 255, 0), 
-  color(255, 0, 255), 
-  color(0, 255, 255)
+  color(0, 127, 0), 
+  color(0, 0, 127), 
+  color(0, 127, 127)
 };
 
 
-PVector com = new PVector();                                   
-PVector com2d = new PVector();                                   
 
 
-
+/*
 final int SKEL_HEAD = 0;
 final int SKEL_NECK = 1;
 final int SKEL_LEFT_SHOULDER = 2;
@@ -52,6 +47,28 @@ final int SKEL_RIGHT_KNEE = 13;
 final int SKEL_RIGHT_FOOT = 14;
 
 final int SKEL_COUNT = 15;
+*/
+
+final int SKEL_HEAD = 0;
+//final int SKEL_NECK = 1;
+final int SKEL_LEFT_SHOULDER = 1;
+final int SKEL_LEFT_ELBOW = 2;
+final int SKEL_LEFT_HAND = 3;
+final int SKEL_RIGHT_SHOULDER = 4;
+final int SKEL_RIGHT_ELBOW = 5;
+final int SKEL_RIGHT_HAND = 6;
+
+//final int SKEL_TORSO = 8;
+//final int SKEL_LEFT_HIP = 9; 
+//final int SKEL_LEFT_KNEE = 10;
+//final int SKEL_LEFT_FOOT = 11;
+//
+//final int SKEL_RIGHT_HIP = 12;
+//final int SKEL_RIGHT_KNEE = 13;
+//final int SKEL_RIGHT_FOOT = 14;
+
+final int SKEL_COUNT = 7;
+
 
 int[] joints = new int[SKEL_COUNT];
 PVector[] jointPos = new PVector[SKEL_COUNT];
@@ -72,26 +89,53 @@ final int GESTURE_COUNT = 7;
 boolean gestureState[] = new boolean[GESTURE_COUNT];
 String gestureName[] = new String[GESTURE_COUNT];
 
+final int PIN_FOHN = 1;
+final int PIN_LUFTER = 2;
+final int PIN_RASIERAPPARAT = 3;
+final int PIN_BOHRMASCHINE = 4;
+final int PIN_STAUBSAUGER = 5;
+final int PIN_MIXER = 6;
+final int PIN_RADIOGERAT = 7;
+final int PIN_WASSERKESSEL = 8;
+
+
+/*
+    public class Conductor {
+
+      onGesture(g){
+        switch g:
+
+        case GESTURE_HAND_HAIR: PIN_FOHN,
+        case GESTURE_SINGLE_HAND_CIRCLES:  PIN_LUFTER,
+        case GESTURE_HAND_CHIN: PIN_RASIERAPPARAT,
+        case GESTURE_HAND_FAR_FROM_BODY:    PIN_BOHRMASCHINE,
+        case GESTURE_TWO_HANDS_GOING_UP: PIN_STAUBSAUGER,
+        case GESTURE_FULL_BODY_TWIST: PIN_MIXER,
+        case GESTURE_TWO_HANDS_EARS: PIN_RADIOGERAT,
+  //PIN_WASSERKESSEL;
+      }
+    }
+    */
 
 
 
+    int pin = 12;
 
-int pin = 12;
 
+    void setup()
+    {
+      size(640, 480);
+      frameRate(30);
 
-void setup()
-{
-  size(640, 480);
+      context = new SimpleOpenNI(this);
+      if (context.isInit() == false)
+      {
+        println("Can't init SimpleOpenNI, maybe the camera is not connected!"); 
+        exit();
+        return;
+      }
 
-  context = new SimpleOpenNI(this);
-  if (context.isInit() == false)
-  {
-    println("Can't init SimpleOpenNI, maybe the camera is not connected!"); 
-    exit();
-    return;
-  }
-
-  context.setMirror(true);
+      context.setMirror(true);
   // enable depthMap generation 
   context.enableDepth();
 
@@ -100,7 +144,6 @@ void setup()
 
 
   joints[SKEL_HEAD] = SimpleOpenNI.SKEL_HEAD;
-  joints[SKEL_NECK] = SimpleOpenNI.SKEL_NECK;
 
   joints[SKEL_LEFT_SHOULDER] = SimpleOpenNI.SKEL_LEFT_SHOULDER;
   joints[SKEL_LEFT_ELBOW] = SimpleOpenNI.SKEL_LEFT_ELBOW;
@@ -110,6 +153,8 @@ void setup()
   joints[SKEL_RIGHT_ELBOW] = SimpleOpenNI.SKEL_RIGHT_ELBOW;
   joints[SKEL_RIGHT_HAND] = SimpleOpenNI.SKEL_RIGHT_HAND;
 
+/*
+  joints[SKEL_NECK] = SimpleOpenNI.SKEL_NECK;
   joints[SKEL_TORSO] = SimpleOpenNI.SKEL_TORSO;
 
   joints[SKEL_LEFT_HIP] = SimpleOpenNI.SKEL_LEFT_HIP;
@@ -119,7 +164,7 @@ void setup()
   joints[SKEL_RIGHT_HIP] = SimpleOpenNI.SKEL_RIGHT_HIP;
   joints[SKEL_RIGHT_KNEE] = SimpleOpenNI.SKEL_RIGHT_KNEE;
   joints[SKEL_RIGHT_FOOT] = SimpleOpenNI.SKEL_RIGHT_FOOT;
-
+  */
 
   for(int i = 0; i < SKEL_COUNT; i++)
   {
@@ -136,19 +181,25 @@ void setup()
   gestureName[GESTURE_FULL_BODY_TWIST] = "full body twist";
 
 
-  arduino = new Arduino(this, Arduino.list()[0], 57600);
+  String[] arduinoList = Arduino.list();
+
+//  if (arduinoList.length > 0)
+//  {
+
+  arduino = new Arduino(this, arduinoList[0], 57600);
   // Set the Arduino digital pins as outputs.
   for (int i = 0; i <= 13; i++)
   {
     arduino.pinMode(i, Arduino.OUTPUT);
   }
+//  }
 
 
-  background(200, 0, 0);
+background(200, 0, 0);
 
-  stroke(0, 0, 255);
-  strokeWeight(6);
-  smooth();
+stroke(0, 0, 255);
+strokeWeight(6);
+smooth();
 }
 
 void draw()
@@ -161,7 +212,6 @@ void draw()
   // draw depthImageMap
   //image(context.depthImage(), 0, 0);
   image(context.userImage(), 0, 0);
-  PVector comAvg = new PVector(0.0, 0.0);
 
 
   // draw the skeleton if it's available
@@ -170,7 +220,7 @@ void draw()
   {
     if (context.isTrackingSkeleton(userList[i]))
     {
-      stroke(userClr[ (userList[i] - 1) % userClr.length ] );
+      stroke(color(255, 0, 0));
       drawSkeleton(userList[i]);
     }  
 
@@ -187,13 +237,6 @@ void draw()
 
     if (jointValid[SKEL_HEAD] && jointValid[SKEL_RIGHT_HAND])
     {
-
-      //PVector joint1_2d = new PVector();
-      //PVector joint2_2d = new PVector();
-
-      //context.convertRealWorldToProjective(joint1Pos, joint1_2d);
-      //context.convertRealWorldToProjective(joint2Pos, joint2_2d);
-
       float diff = jointPos[SKEL_HEAD].z - jointPos[SKEL_RIGHT_HAND].z;
       if (diff > 200)
       {
@@ -217,9 +260,9 @@ void draw()
 
 
 
-}
+  }
 
-
+/*
 //draw UI
 for (int g=0; g < GESTURE_COUNT; g++)
 {
@@ -244,8 +287,10 @@ for (int g=0; g < GESTURE_COUNT; g++)
 
   //println("var: "+ gestureState[GESTURE_HAND_FAR_FROM_BODY]);
 }
-
-
+*/
+  fill(255);
+  
+  text("FPS: " + nf(round(frameRate),2), 10, 10); 
 
   //update arduino
 }
@@ -281,6 +326,8 @@ void drawSkeleton(int userId)
    context.drawLimb(userId, SimpleOpenNI.SKEL_RIGHT_HIP, SimpleOpenNI.SKEL_RIGHT_KNEE);
    context.drawLimb(userId, SimpleOpenNI.SKEL_RIGHT_KNEE, SimpleOpenNI.SKEL_RIGHT_FOOT);
  }
+
+
 
 // -----------------------------------------------------------------
 // SimpleOpenNI events
