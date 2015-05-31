@@ -126,11 +126,6 @@ final int PIN_WASSERKESSEL = 8;
     }
     */
 
-
-
-    int pin = 12;
-
-
     void setup()
     {
       size(640, 480);
@@ -189,6 +184,7 @@ final int PIN_WASSERKESSEL = 8;
   gestureName[GESTURE_LEFT_HAND_CHIN] = "left hand on chin";
   
   gestureName[GESTURE_TWO_HANDS_EARS] = "two hand in ears";
+
   gestureName[GESTURE_RIGHT_HAND_FAR_FROM_BODY] = "right hand far from body";
   gestureName[GESTURE_LEFT_HAND_FAR_FROM_BODY] = "left hand far from body";
   
@@ -255,93 +251,197 @@ void draw()
     // static gesture check
     //
 
-  final int GESTURE_HAND_FAR_FROM_BODY_THRESHOLD = 400; //mm. todo slider
+  final int GESTURE_HAND_FAR_FROM_BODY_MIN_Z = 400; //mm. todo slider
+  
+///
+final int GESTURE_HAND_CHIN_MAX_X = 100;
+final int GESTURE_HAND_CHIN_MIN_Y = 100;
+final int GESTURE_HAND_CHIN_MAX_Y = 300;
 
-    if (jointValid[SKEL_HEAD] && jointValid[SKEL_RIGHT_HAND])
-    {
-      float diffX = jointPos[SKEL_HEAD].x - jointPos[SKEL_RIGHT_HAND].x;
-      float diffY = jointPos[SKEL_HEAD].y - jointPos[SKEL_RIGHT_HAND].y;
-      float diffZ = jointPos[SKEL_HEAD].z - jointPos[SKEL_RIGHT_HAND].z;
+///
 
-      if (diffZ > GESTURE_HAND_FAR_FROM_BODY_THRESHOLD)
-      {
-        gestureState[GESTURE_RIGHT_HAND_FAR_FROM_BODY] = true;
-      }
-      else
-      {
-        gestureState[GESTURE_RIGHT_HAND_FAR_FROM_BODY] = false;
-      }
+final int GESTURE_HAND_HAIR_MIN_X = -300;
+final int GESTURE_HAND_HAIR_MAX_X = 100;
+
+final int GESTURE_HAND_HAIR_MIN_Y = -300;
+final int GESTURE_HAND_HAIR_MAX_Y = 50;
+
+final int GESTURE_HAND_HAIR_MAX_Z = 200;
+
+///
+final int GESTURE_TWO_HANDS_EARS_MIN_X = 100;
+final int GESTURE_TWO_HANDS_EARS_MAX_X = 200;
+
+final int GESTURE_TWO_HANDS_EARS_MIN_Y = -50;
+final int GESTURE_TWO_HANDS_EARS_MAX_Y = 150;
+
+final int GESTURE_TWO_HANDS_EARS_MIN_Z = -100;
+final int GESTURE_TWO_HANDS_EARS_MAX_Z = 100;
+
+
+
+if (jointValid[SKEL_HEAD] && jointValid[SKEL_RIGHT_HAND])
+{
+  float diffX = jointPos[SKEL_HEAD].x - jointPos[SKEL_RIGHT_HAND].x;
+  float diffY = jointPos[SKEL_HEAD].y - jointPos[SKEL_RIGHT_HAND].y;
+  float diffZ = jointPos[SKEL_HEAD].z - jointPos[SKEL_RIGHT_HAND].z;
+
+  if (diffZ > GESTURE_HAND_FAR_FROM_BODY_MIN_Z)
+  {
+    gestureState[GESTURE_RIGHT_HAND_FAR_FROM_BODY] = true;
+  }
+  else
+  {
+    gestureState[GESTURE_RIGHT_HAND_FAR_FROM_BODY] = false;
+  }
 
 // println(diffX, diffY, diffZ);
 
-      if (diffZ > 0 && diffZ < GESTURE_HAND_FAR_FROM_BODY_THRESHOLD 
-        && abs(diffX) < 100
-        && diffY > 100
-        && diffY < 300
+if (diffZ > 0 && diffZ < GESTURE_HAND_FAR_FROM_BODY_MIN_Z 
+  && abs(diffX) < GESTURE_HAND_CHIN_MAX_X
+  && diffY > GESTURE_HAND_CHIN_MIN_Y
+  && diffY < GESTURE_HAND_CHIN_MAX_Y
 
-        )
-      {
-        gestureState[GESTURE_RIGHT_HAND_CHIN] = true;
-      }
-      else
-      {
-       gestureState[GESTURE_RIGHT_HAND_CHIN] = false; 
-      }
-
-
-
-    }
-
-    if (jointValid[SKEL_HEAD] && jointValid[SKEL_LEFT_HAND])
-    {
-      
-      float diffX = jointPos[SKEL_HEAD].x - jointPos[SKEL_LEFT_HAND].x;
-      float diffY = jointPos[SKEL_HEAD].y - jointPos[SKEL_LEFT_HAND].y;
-      float diffZ = jointPos[SKEL_HEAD].z - jointPos[SKEL_LEFT_HAND].z;
+  )
+{
+  gestureState[GESTURE_RIGHT_HAND_CHIN] = true;
+}
+else
+{
+ gestureState[GESTURE_RIGHT_HAND_CHIN] = false; 
+}
 
 
-      if (diffZ > GESTURE_HAND_FAR_FROM_BODY_THRESHOLD)
-      {
-        gestureState[GESTURE_LEFT_HAND_FAR_FROM_BODY] = true;
-      }
-      else
-      {
-        gestureState[GESTURE_LEFT_HAND_FAR_FROM_BODY] = false;
-      }
+
+if (abs(diffZ) < GESTURE_HAND_HAIR_MAX_Z
+  && diffX > GESTURE_HAND_HAIR_MIN_X
+  && diffX < GESTURE_HAND_HAIR_MAX_X
+
+  && diffY > GESTURE_HAND_HAIR_MIN_Y
+  && diffY < GESTURE_HAND_HAIR_MAX_Y
+
+  )
+{
+  gestureState[GESTURE_RIGHT_HAND_HAIR] = true;
+}
+else
+{
+ gestureState[GESTURE_RIGHT_HAND_HAIR] = false; 
+}
 
 
-      if (diffZ > 0 && diffZ < GESTURE_HAND_FAR_FROM_BODY_THRESHOLD 
-        && abs(diffX) < 100
-        && diffY > 100
-        && diffY < 300
-
-        )
-      {
-        gestureState[GESTURE_LEFT_HAND_CHIN] = true;
-      }
-      else
-      {
-       gestureState[GESTURE_LEFT_HAND_CHIN] = false; 
-      }
-
-    }
 
 
-    
-    //GESTURE_HAND_CHIN = 1;
 
-    
+
+}
+
+if (jointValid[SKEL_HEAD] && jointValid[SKEL_LEFT_HAND])
+{
+
+  float diffX = jointPos[SKEL_HEAD].x - jointPos[SKEL_LEFT_HAND].x;
+  float diffY = jointPos[SKEL_HEAD].y - jointPos[SKEL_LEFT_HAND].y;
+  float diffZ = jointPos[SKEL_HEAD].z - jointPos[SKEL_LEFT_HAND].z;
+
+
+  if (diffZ > GESTURE_HAND_FAR_FROM_BODY_MIN_Z)
+  {
+    gestureState[GESTURE_LEFT_HAND_FAR_FROM_BODY] = true;
+  }
+  else
+  {
+    gestureState[GESTURE_LEFT_HAND_FAR_FROM_BODY] = false;
+  }
+
+
+  if (diffZ > 0 && diffZ < GESTURE_HAND_FAR_FROM_BODY_MIN_Z 
+    && abs(diffX) < GESTURE_HAND_CHIN_MAX_X
+    && diffY > GESTURE_HAND_CHIN_MIN_Y
+    && diffY < GESTURE_HAND_CHIN_MAX_Y
+
+    )
+  {
+    gestureState[GESTURE_LEFT_HAND_CHIN] = true;
+  }
+  else
+  {
+   gestureState[GESTURE_LEFT_HAND_CHIN] = false; 
+ }
+
+ if (abs(diffZ) < GESTURE_HAND_HAIR_MAX_Z
+  && diffX < GESTURE_HAND_HAIR_MIN_X * (-1)
+  && diffX > GESTURE_HAND_HAIR_MAX_X * (-1)
+
+  && diffY > GESTURE_HAND_HAIR_MIN_Y
+  && diffY < GESTURE_HAND_HAIR_MAX_Y
+
+  )
+ {
+  gestureState[GESTURE_LEFT_HAND_HAIR] = true;
+}
+else
+{
+ gestureState[GESTURE_LEFT_HAND_HAIR] = false; 
+}
+
+
+if (jointValid[SKEL_HEAD] 
+  && jointValid[SKEL_RIGHT_HAND]
+  && jointValid[SKEL_LEFT_HAND]
+  )
+{
+
+ float diffXL = jointPos[SKEL_HEAD].x - jointPos[SKEL_LEFT_HAND].x;
+ float diffYL = jointPos[SKEL_HEAD].y - jointPos[SKEL_LEFT_HAND].y;
+ float diffZL = jointPos[SKEL_HEAD].z - jointPos[SKEL_LEFT_HAND].z;
+
+ float diffXR = jointPos[SKEL_HEAD].x - jointPos[SKEL_RIGHT_HAND].x;
+ float diffYR = jointPos[SKEL_HEAD].y - jointPos[SKEL_RIGHT_HAND].y;
+ float diffZR = jointPos[SKEL_HEAD].z - jointPos[SKEL_RIGHT_HAND].z;
+
+
+ if (
+  -diffXR > GESTURE_TWO_HANDS_EARS_MIN_X
+  && -diffXR < GESTURE_TWO_HANDS_EARS_MAX_X
+  && diffYR > GESTURE_TWO_HANDS_EARS_MIN_Y
+  && diffYR < GESTURE_TWO_HANDS_EARS_MAX_Y
+  && diffZR > GESTURE_TWO_HANDS_EARS_MIN_Z
+  && diffZR < GESTURE_TWO_HANDS_EARS_MAX_Z
+  
+  && diffXL > GESTURE_TWO_HANDS_EARS_MIN_X
+  && diffXL < GESTURE_TWO_HANDS_EARS_MAX_X
+  && diffYL > GESTURE_TWO_HANDS_EARS_MIN_Y
+  && diffYL < GESTURE_TWO_HANDS_EARS_MAX_Y
+  && diffZL > GESTURE_TWO_HANDS_EARS_MIN_Z
+  && diffZL < GESTURE_TWO_HANDS_EARS_MAX_Z
+  )
+
+ {
+  gestureState[GESTURE_TWO_HANDS_EARS] = true;
+}
+else
+{
+ gestureState[GESTURE_TWO_HANDS_EARS] = false; 
+}
+
+
+}
+
+
+
+
+}
+
+
 drawJointDiff(jointPos[SKEL_HEAD], jointPos[SKEL_LEFT_HAND]);
 drawJointDiff(jointPos[SKEL_HEAD], jointPos[SKEL_RIGHT_HAND]);
 
-    drawJoint(jointPos[SKEL_HEAD]);
-    drawJoint(jointPos[SKEL_LEFT_HAND]);
-    drawJoint(jointPos[SKEL_RIGHT_HAND]);
+drawJoint(jointPos[SKEL_HEAD]);
+drawJoint(jointPos[SKEL_LEFT_HAND]);
+drawJoint(jointPos[SKEL_RIGHT_HAND]);
 
-    
 
-//GESTURE_HAND_HAIR = 0;
-//GESTURE_TWO_HANDS_EARS
+
 
 
 
@@ -358,13 +458,13 @@ drawJointDiff(jointPos[SKEL_HEAD], jointPos[SKEL_RIGHT_HAND]);
 //draw UI
 for (int g=0; g < GESTURE_COUNT; g++)
 {
-  int rectHeight = 30;
+  int rectHeight = 12;
   int rectWidth = 200;
   int rectX = 50;
   int rectY = 50;
 
   int x = rectX;
-  int y = rectY + (rectHeight + 10) * g;
+  int y = rectY + (rectHeight * 2) * g;
 
   color onColor = color(255, 0, 0);
   color offColor = color(50, 50, 50);
@@ -376,16 +476,17 @@ for (int g=0; g < GESTURE_COUNT; g++)
 
   fill(255);
   textAlign(LEFT, CENTER);
+  textSize(rectHeight);
   text(gestureName[g], x, y + rectHeight/2);
 
   //println("var: "+ gestureState[GESTURE_HAND_FAR_FROM_BODY]);
 }
 
 
-  fill(255);
-  textSize(20);
+fill(255);
+textSize(20);
 
-  text("FPS: " + nf(round(frameRate),2), 10, 10); 
+text("FPS: " + nf(round(frameRate),2), 10, 10); 
 
   //update arduino
 }
@@ -393,36 +494,44 @@ for (int g=0; g < GESTURE_COUNT; g++)
 
 void drawJoint(PVector real)
 {
-    PVector p = new PVector();
-    context.convertRealWorldToProjective(real, p);
+  PVector p = new PVector();
+  context.convertRealWorldToProjective(real, p);
 
-    textAlign(CENTER, CENTER);
-    textSize(16); 
+  textAlign(CENTER, CENTER);
+  textSize(16); 
 
-    rect(p.x, p.y, 10, 10);
-    text(nf(int(real.z), 4), int(p.x), int(p.y));  
+  rect(p.x, p.y, 10, 10);
+  text(nf(int(real.z), 4), int(p.x), int(p.y));  
 }
 
 void drawJointDiff(PVector r1, PVector r2)
 {
-    PVector p1 = new PVector();
-    context.convertRealWorldToProjective(r1, p1);
+  PVector p1 = new PVector();
+  context.convertRealWorldToProjective(r1, p1);
 
-    PVector p2 = new PVector();
-    context.convertRealWorldToProjective(r2, p2);
+  PVector p2 = new PVector();
+  context.convertRealWorldToProjective(r2, p2);
 
-    textAlign(CENTER, CENTER);
-    textSize(16); 
+  textAlign(CENTER, CENTER);
+  int ts = 16;
+  textSize(ts); 
 
-    line(p1.x, p1.y, p2.x, p2.y);
+  
+  stroke(color(0, 255, 255));
+  strokeWeight(3);
+  line(p1.x, p1.y, p2.x, p2.y);
 
 
-    PVector rdiff = PVector.sub(r1, r2);
-    float dist = PVector.dist(r1, r2);
-    PVector pmean = PVector.div(PVector.add(p1, p2), 2);
+  PVector rdiff = PVector.sub(r1, r2);
+  float dist = PVector.dist(r1, r2);
+  PVector pmean = PVector.div(PVector.add(p1, p2), 2);
 
-    text(nf(int(dist), 4), int(pmean.x), int(pmean.y));  
-}
+    //text(nf(int(dist), 4), int(pmean.x), int(pmean.y));
+    //text(rdiff.toString(), int(pmean.x), int(pmean.y));
+    text(nf(int(rdiff.x), 4), int(pmean.x), int(pmean.y)-ts*4);
+    text(nf(int(rdiff.y), 4), int(pmean.x), int(pmean.y)-ts*3);
+    text(nf(int(rdiff.z), 4), int(pmean.x), int(pmean.y)-ts*2);
+  }
 
 
 
