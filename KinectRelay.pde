@@ -75,16 +75,25 @@ PVector[] jointPos = new PVector[SKEL_COUNT];
 boolean[] jointValid = new boolean[SKEL_COUNT];
 
 
-final int GESTURE_HAND_HAIR = 0;
-final int GESTURE_HAND_CHIN = 1;
-final int GESTURE_TWO_HANDS_EARS = 2;
-final int GESTURE_HAND_FAR_FROM_BODY = 3;
+final int GESTURE_RIGHT_HAND_HAIR = 0;
+final int GESTURE_LEFT_HAND_HAIR = 1;
 
-final int GESTURE_SINGLE_HAND_CIRCLES = 4;
-final int GESTURE_TWO_HANDS_GOING_UP = 5;
-final int GESTURE_FULL_BODY_TWIST = 6;
+final int GESTURE_RIGHT_HAND_CHIN = 2;
+final int GESTURE_LEFT_HAND_CHIN = 3;
 
-final int GESTURE_COUNT = 7;
+final int GESTURE_RIGHT_HAND_FAR_FROM_BODY = 4;
+final int GESTURE_LEFT_HAND_FAR_FROM_BODY = 5;
+
+final int GESTURE_TWO_HANDS_EARS = 6;
+
+
+final int GESTURE_RIGHT_HAND_CIRCLES = 7;
+final int GESTURE_LEFT_HAND_CIRCLES = 8;
+
+final int GESTURE_TWO_HANDS_GOING_UP = 9;
+final int GESTURE_FULL_BODY_TWIST = 10;
+
+final int GESTURE_COUNT = 11;
 
 boolean gestureState[] = new boolean[GESTURE_COUNT];
 String gestureName[] = new String[GESTURE_COUNT];
@@ -138,6 +147,7 @@ final int PIN_WASSERKESSEL = 8;
       context.setMirror(true);
   // enable depthMap generation 
   context.enableDepth();
+  //context.enableDepth(320,240,30); // faster
 
   // enable skeleton generation for all joints
   context.enableUser();
@@ -172,11 +182,19 @@ final int PIN_WASSERKESSEL = 8;
   }
 
 
-  gestureName[GESTURE_HAND_HAIR] = "hand in hair";
-  gestureName[GESTURE_HAND_CHIN] = "hand on chin";
+  gestureName[GESTURE_RIGHT_HAND_HAIR] = "right hand in hair";
+  gestureName[GESTURE_LEFT_HAND_HAIR] = "left hand in hair";
+  
+  gestureName[GESTURE_RIGHT_HAND_CHIN] = "right hand on chin";
+  gestureName[GESTURE_LEFT_HAND_CHIN] = "left hand on chin";
+  
   gestureName[GESTURE_TWO_HANDS_EARS] = "two hand in ears";
-  gestureName[GESTURE_HAND_FAR_FROM_BODY] = "hand far from body";
-  gestureName[GESTURE_SINGLE_HAND_CIRCLES] = "Single hand Circles";
+  gestureName[GESTURE_RIGHT_HAND_FAR_FROM_BODY] = "right hand far from body";
+  gestureName[GESTURE_LEFT_HAND_FAR_FROM_BODY] = "left hand far from body";
+  
+  gestureName[GESTURE_RIGHT_HAND_CIRCLES] = "right hand Circles";
+  gestureName[GESTURE_LEFT_HAND_CIRCLES] = "left hand Circles";
+  
   gestureName[GESTURE_TWO_HANDS_GOING_UP]  = "two hands going up";
   gestureName[GESTURE_FULL_BODY_TWIST] = "full body twist";
 
@@ -194,12 +212,8 @@ final int PIN_WASSERKESSEL = 8;
   }
 //  }
 
+noSmooth();
 
-background(200, 0, 0);
-
-stroke(0, 0, 255);
-strokeWeight(6);
-smooth();
 }
 
 void draw()
@@ -221,6 +235,7 @@ void draw()
     if (context.isTrackingSkeleton(userList[i]))
     {
       stroke(color(255, 0, 0));
+      strokeWeight(6);
       drawSkeleton(userList[i]);
     }  
 
@@ -235,24 +250,80 @@ void draw()
       jointValid[j] = confidence > 0.5;
     }
 
+
+    // 
+    // static gesture check
+    //
+
+  final int GESTURE_HAND_FAR_FROM_BODY_THRESHOLD = 400; //mm. todo slider
+
     if (jointValid[SKEL_HEAD] && jointValid[SKEL_RIGHT_HAND])
     {
-      float diff = jointPos[SKEL_HEAD].z - jointPos[SKEL_RIGHT_HAND].z;
-      if (diff > 200)
+      float diffX = jointPos[SKEL_HEAD].x - jointPos[SKEL_RIGHT_HAND].x;
+      float diffY = jointPos[SKEL_HEAD].y - jointPos[SKEL_RIGHT_HAND].y;
+      float diffZ = jointPos[SKEL_HEAD].z - jointPos[SKEL_RIGHT_HAND].z;
+
+      if (diffZ > GESTURE_HAND_FAR_FROM_BODY_THRESHOLD)
       {
-        gestureState[GESTURE_HAND_FAR_FROM_BODY] = true;
-        //arduino.digitalWrite(pin, Arduino.HIGH);
+        gestureState[GESTURE_RIGHT_HAND_FAR_FROM_BODY] = true;
       }
       else
       {
-        gestureState[GESTURE_HAND_FAR_FROM_BODY] = false;
-       //arduino.digitalWrite(pin, Arduino.LOW);
-     }
+        gestureState[GESTURE_RIGHT_HAND_FAR_FROM_BODY] = false;
+      }
 
-     //stroke(255, 255, 0);
-     //strokeWeight(2);
-      //line(joint1_2d.x, joint1_2d.y, joint2_2d.x, joint2_2d.y);
+// println(diffX, diffY, diffZ);
+
+      if (diffZ > 0 && diffZ < GESTURE_HAND_FAR_FROM_BODY_THRESHOLD 
+        && abs(diffX) < 100
+        && diffY > 100
+        && diffY < 300
+
+        )
+      {
+        gestureState[GESTURE_RIGHT_HAND_CHIN] = true;
+      }
+      else
+      {
+       gestureState[GESTURE_RIGHT_HAND_CHIN] = false; 
+      }
+
+
+
     }
+
+    if (jointValid[SKEL_HEAD] && jointValid[SKEL_LEFT_HAND])
+    {
+      float diffZ = jointPos[SKEL_HEAD].z - jointPos[SKEL_LEFT_HAND].z;
+      if (diffZ > GESTURE_HAND_FAR_FROM_BODY_THRESHOLD)
+      {
+        gestureState[GESTURE_LEFT_HAND_FAR_FROM_BODY] = true;
+      }
+      else
+      {
+        gestureState[GESTURE_LEFT_HAND_FAR_FROM_BODY] = false;
+      }
+    }
+
+
+    
+    //GESTURE_HAND_CHIN = 1;
+
+    
+drawJointDiff(jointPos[SKEL_HEAD], jointPos[SKEL_LEFT_HAND]);
+drawJointDiff(jointPos[SKEL_HEAD], jointPos[SKEL_RIGHT_HAND]);
+
+    drawJoint(jointPos[SKEL_HEAD]);
+    drawJoint(jointPos[SKEL_LEFT_HAND]);
+    drawJoint(jointPos[SKEL_RIGHT_HAND]);
+
+    
+
+//GESTURE_HAND_HAIR = 0;
+//GESTURE_TWO_HANDS_EARS
+
+
+
 
     // update conductor: check gestureState and activate pins
     // todo: patterns, pulses, etc.
@@ -262,7 +333,7 @@ void draw()
 
   }
 
-/*
+
 //draw UI
 for (int g=0; g < GESTURE_COUNT; g++)
 {
@@ -283,17 +354,57 @@ for (int g=0; g < GESTURE_COUNT; g++)
   rect(x, y, rectWidth, rectHeight);
 
   fill(255);
+  textAlign(LEFT, CENTER);
   text(gestureName[g], x, y + rectHeight/2);
 
   //println("var: "+ gestureState[GESTURE_HAND_FAR_FROM_BODY]);
 }
-*/
+
+
   fill(255);
-  
+  textSize(20);
+
   text("FPS: " + nf(round(frameRate),2), 10, 10); 
 
   //update arduino
 }
+
+
+void drawJoint(PVector real)
+{
+    PVector p = new PVector();
+    context.convertRealWorldToProjective(real, p);
+
+    textAlign(CENTER, CENTER);
+    textSize(16); 
+
+    rect(p.x, p.y, 10, 10);
+    text(nf(int(real.z), 4), int(p.x), int(p.y));  
+}
+
+void drawJointDiff(PVector r1, PVector r2)
+{
+    PVector p1 = new PVector();
+    context.convertRealWorldToProjective(r1, p1);
+
+    PVector p2 = new PVector();
+    context.convertRealWorldToProjective(r2, p2);
+
+    textAlign(CENTER, CENTER);
+    textSize(16); 
+
+    line(p1.x, p1.y, p2.x, p2.y);
+
+
+    PVector rdiff = PVector.sub(r1, r2);
+    float dist = PVector.dist(r1, r2);
+    PVector pmean = PVector.div(PVector.add(p1, p2), 2);
+
+    text(nf(int(dist), 4), int(pmean.x), int(pmean.y));  
+}
+
+
+
 
 // draw the skeleton with the selected joints
 void drawSkeleton(int userId)
