@@ -15,6 +15,8 @@
 
  import cc.arduino.*;
 
+ import java.util.ArrayList;
+
  Arduino arduino;
 
  SimpleOpenNI  context;
@@ -74,6 +76,9 @@ int[] joints = new int[SKEL_COUNT];
 PVector[] jointPos = new PVector[SKEL_COUNT];
 boolean[] jointValid = new boolean[SKEL_COUNT];
 
+final int HISTORY_SIZE = 10;
+
+ArrayList<PVector> history = new ArrayList<PVector>();
 
 final int GESTURE_RIGHT_HAND_HAIR = 0;
 final int GESTURE_LEFT_HAND_HAIR = 1;
@@ -244,6 +249,22 @@ void draw()
     {
       float confidence = context.getJointPositionSkeleton(userId, joints[j], jointPos[j]);
       jointValid[j] = confidence > 0.5;
+
+      if (j == SKEL_RIGHT_HAND)
+      {
+        if(jointValid[j])
+        {
+          history.add(new PVector(jointPos[j].x, jointPos[j].y, jointPos[j].z));
+          if (history.size() > HISTORY_SIZE)
+          {
+            history.remove(0);
+          }
+        }
+        else
+        {
+          history.clear();
+        }
+      }
     }
 
 
@@ -384,6 +405,7 @@ else
  gestureState[GESTURE_LEFT_HAND_HAIR] = false; 
 }
 
+}
 
 if (jointValid[SKEL_HEAD] 
   && jointValid[SKEL_RIGHT_HAND]
@@ -415,23 +437,18 @@ if (jointValid[SKEL_HEAD]
   && diffZL > GESTURE_TWO_HANDS_EARS_MIN_Z
   && diffZL < GESTURE_TWO_HANDS_EARS_MAX_Z
   )
-
  {
   gestureState[GESTURE_TWO_HANDS_EARS] = true;
 }
 else
 {
- gestureState[GESTURE_TWO_HANDS_EARS] = false; 
+  gestureState[GESTURE_TWO_HANDS_EARS] = false; 
+}
 }
 
 
-}
 
-
-
-
-}
-
+/*
 
 drawJointDiff(jointPos[SKEL_HEAD], jointPos[SKEL_LEFT_HAND]);
 drawJointDiff(jointPos[SKEL_HEAD], jointPos[SKEL_RIGHT_HAND]);
@@ -439,21 +456,105 @@ drawJointDiff(jointPos[SKEL_HEAD], jointPos[SKEL_RIGHT_HAND]);
 drawJoint(jointPos[SKEL_HEAD]);
 drawJoint(jointPos[SKEL_LEFT_HAND]);
 drawJoint(jointPos[SKEL_RIGHT_HAND]);
+*/
 
 
 
+if (history.size() >= HISTORY_SIZE)
+{
+
+  // check for enough movement
+  float avgDist = 0.0f;
+  PVector h0 = history.get(0);
+  PVector avg = new PVector();
+  avg.set(h0);
+
+  
+  for (int h=1; h < history.size(); h++)
+  {
+    PVector r0 = history.get(h);
+    PVector r1 = history.get(h-1);
+
+    avg.add(r0);
+    avgDist += PVector.dist(r0, r1);
+  }
+
+  final float ANGLE_MAX = 1.1f;
+  boolean angleOK = true;
+  
+
+  for (int h=2; h < history.size(); h++)
+  {
+    // check smoothness
+
+    PVector r0 = history.get(h);
+    PVector r1 = history.get(h-1);
+    PVector r2 = history.get(h-2);
+    
+
+    PVector rdiff0 = PVector.sub(r0, r1);
+    PVector rdiff1 = PVector.sub(r1, r2);
 
 
+    float angle = PVector.angleBetween(rdiff0, rdiff1);
+    //println("angle: "+angle);
+    
 
+    if (angle > ANGLE_MAX)
+      angleOK = false;
+
+    PVector p0 = new PVector();
+    PVector p1 = new PVector();
+    context.convertRealWorldToProjective(r0, p0);
+    context.convertRealWorldToProjective(r1, p1);
+
+
+    line(p0.x, p0.y, p1.x, p1.y);
+
+    rect(p1.x, p1.y, 3, 3);
+  }
+
+  avg.div(history.size());
+  avgDist /= (history.size() - 1);
+
+  PVector avgProj = new PVector();
+  context.convertRealWorldToProjective(avg, avgProj);
+
+  fill(0, 255, 0);
+  rect(avgProj.x, avgProj.y, 5, 5);
+
+  float minDistFromAvg = 1000.0;
+  float maxDistFromAvg = 0.0;
+
+  for (int h=0; h < history.size(); h++)
+  {
+    PVector r0 = history.get(h);
+    float dist = PVector.dist(r0, avg);
+
+    minDistFromAvg = min(minDistFromAvg, dist);
+    maxDistFromAvg = max(maxDistFromAvg, dist);
+  }
+
+  //println(minDistFromAvg, maxDistFromAvg);
+  
+  if (avgDist > 30
+    && minDistFromAvg > 20
+    && maxDistFromAvg / (minDistFromAvg+0.001) < 3
+    && angleOK
+    )
+  {
+    gestureState[GESTURE_RIGHT_HAND_CIRCLES] = true;
+  }
+  else
+  {
+    gestureState[GESTURE_RIGHT_HAND_CIRCLES] = false; 
+  }
+}
 
     // update conductor: check gestureState and activate pins
     // todo: patterns, pulses, etc.
 
-
-
-
   }
-
 
 //draw UI
 for (int g=0; g < GESTURE_COUNT; g++)
@@ -479,7 +580,6 @@ for (int g=0; g < GESTURE_COUNT; g++)
   textSize(rectHeight);
   text(gestureName[g], x, y + rectHeight/2);
 
-  //println("var: "+ gestureState[GESTURE_HAND_FAR_FROM_BODY]);
 }
 
 
