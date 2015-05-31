@@ -17,6 +17,8 @@
 
  import java.util.ArrayList;
 
+ public class PVectorArrayList extends ArrayList<PVector>{}
+
  Arduino arduino;
 
  SimpleOpenNI  context;
@@ -78,7 +80,11 @@ boolean[] jointValid = new boolean[SKEL_COUNT];
 
 final int HISTORY_SIZE = 10;
 
-ArrayList<PVector> history = new ArrayList<PVector>();
+//ArrayList<PVector> history = new ArrayList<PVector>();
+
+
+PVectorArrayList histories[] = new PVectorArrayList[SKEL_COUNT];
+
 
 final int GESTURE_RIGHT_HAND_HAIR = 0;
 final int GESTURE_LEFT_HAND_HAIR = 1;
@@ -179,6 +185,7 @@ final int PIN_WASSERKESSEL = 8;
   for(int i = 0; i < SKEL_COUNT; i++)
   {
     jointPos[i] = new PVector();
+    histories[i] = new PVectorArrayList();
   }
 
 
@@ -250,20 +257,17 @@ void draw()
       float confidence = context.getJointPositionSkeleton(userId, joints[j], jointPos[j]);
       jointValid[j] = confidence > 0.5;
 
-      if (j == SKEL_RIGHT_HAND)
+      if(jointValid[j])
       {
-        if(jointValid[j])
+        histories[j].add(new PVector(jointPos[j].x, jointPos[j].y, jointPos[j].z));
+        if (histories[j].size() > HISTORY_SIZE)
         {
-          history.add(new PVector(jointPos[j].x, jointPos[j].y, jointPos[j].z));
-          if (history.size() > HISTORY_SIZE)
-          {
-            history.remove(0);
-          }
+          histories[j].remove(0);
         }
-        else
-        {
-          history.clear();
-        }
+      }
+      else
+      {
+        histories[j].clear();
       }
     }
 
@@ -458,10 +462,73 @@ drawJoint(jointPos[SKEL_LEFT_HAND]);
 drawJoint(jointPos[SKEL_RIGHT_HAND]);
 */
 
-
-
-if (history.size() >= HISTORY_SIZE)
+if (checkCircle(SKEL_RIGHT_HAND))
 {
+  gestureState[GESTURE_RIGHT_HAND_CIRCLES] = true;
+}
+else
+{
+  gestureState[GESTURE_RIGHT_HAND_CIRCLES] = false; 
+}
+
+
+if (checkCircle(SKEL_LEFT_HAND))
+{
+  gestureState[GESTURE_LEFT_HAND_CIRCLES] = true;
+}
+else
+{
+  gestureState[GESTURE_LEFT_HAND_CIRCLES] = false; 
+}
+
+}
+
+    // update conductor: check gestureState and activate pins
+    // todo: patterns, pulses, etc.
+
+
+//draw UI
+for (int g=0; g < GESTURE_COUNT; g++)
+{
+  int rectHeight = 12;
+  int rectWidth = 200;
+  int rectX = 50;
+  int rectY = 50;
+
+  int x = rectX;
+  int y = rectY + (rectHeight * 2) * g;
+
+  color onColor = color(255, 0, 0);
+  color offColor = color(50, 50, 50);
+
+  fill(gestureState[g] ? onColor : offColor);
+  stroke(0);
+
+  rect(x, y, rectWidth, rectHeight);
+
+  fill(255);
+  textAlign(LEFT, CENTER);
+  textSize(rectHeight);
+  text(gestureName[g], x, y + rectHeight/2);
+
+}
+
+
+fill(255);
+textSize(20);
+
+text("FPS: " + nf(round(frameRate),2), 10, 10); 
+
+  //update arduino
+}
+
+boolean checkCircle(int joint_id) {
+
+  ArrayList<PVector> history = histories[joint_id];
+
+  if (history.size() < HISTORY_SIZE) {
+    return false;
+  }
 
   // check for enough movement
   float avgDist = 0.0f;
@@ -537,59 +604,13 @@ if (history.size() >= HISTORY_SIZE)
 
   //println(minDistFromAvg, maxDistFromAvg);
   
-  if (avgDist > 30
+  return (avgDist > 30
     && minDistFromAvg > 20
     && maxDistFromAvg / (minDistFromAvg+0.001) < 3
     && angleOK
-    )
-  {
-    gestureState[GESTURE_RIGHT_HAND_CIRCLES] = true;
-  }
-  else
-  {
-    gestureState[GESTURE_RIGHT_HAND_CIRCLES] = false; 
-  }
+    );
 }
 
-    // update conductor: check gestureState and activate pins
-    // todo: patterns, pulses, etc.
-
-  }
-
-//draw UI
-for (int g=0; g < GESTURE_COUNT; g++)
-{
-  int rectHeight = 12;
-  int rectWidth = 200;
-  int rectX = 50;
-  int rectY = 50;
-
-  int x = rectX;
-  int y = rectY + (rectHeight * 2) * g;
-
-  color onColor = color(255, 0, 0);
-  color offColor = color(50, 50, 50);
-
-  fill(gestureState[g] ? onColor : offColor);
-  stroke(0);
-
-  rect(x, y, rectWidth, rectHeight);
-
-  fill(255);
-  textAlign(LEFT, CENTER);
-  textSize(rectHeight);
-  text(gestureName[g], x, y + rectHeight/2);
-
-}
-
-
-fill(255);
-textSize(20);
-
-text("FPS: " + nf(round(frameRate),2), 10, 10); 
-
-  //update arduino
-}
 
 
 void drawJoint(PVector real)
