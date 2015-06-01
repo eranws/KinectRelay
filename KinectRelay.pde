@@ -481,7 +481,19 @@ else
   gestureState[GESTURE_LEFT_HAND_CIRCLES] = false; 
 }
 
+
+if (checkTwoHandsGoingUp())
+{
+  gestureState[GESTURE_TWO_HANDS_GOING_UP] = true;
 }
+else
+{
+  gestureState[GESTURE_TWO_HANDS_GOING_UP] = false; 
+}
+
+}
+
+
 
     // update conductor: check gestureState and activate pins
     // todo: patterns, pulses, etc.
@@ -570,14 +582,13 @@ boolean checkCircle(int joint_id) {
     if (angle > ANGLE_MAX)
       angleOK = false;
 
+    //draw history
     PVector p0 = new PVector();
     PVector p1 = new PVector();
     context.convertRealWorldToProjective(r0, p0);
     context.convertRealWorldToProjective(r1, p1);
 
-
     line(p0.x, p0.y, p1.x, p1.y);
-
     rect(p1.x, p1.y, 3, 3);
   }
 
@@ -610,6 +621,50 @@ boolean checkCircle(int joint_id) {
     && angleOK
     );
 }
+
+boolean checkTwoHandsGoingUp() {
+
+  ArrayList<PVector> historyR = histories[SKEL_RIGHT_HAND];
+  ArrayList<PVector> historyL = histories[SKEL_LEFT_HAND];
+
+  if (historyL.size() < HISTORY_SIZE 
+    || historyR.size() < HISTORY_SIZE ) {
+    return false;
+}
+
+  // check for enough movement
+
+  int rUpCount = 0;
+  int lUpCount = 0;
+  int rlSame = 0;
+
+  for (int h=1; h < historyR.size(); h++)
+  {
+    PVector r0 = historyR.get(h);
+    PVector r1 = historyR.get(h-1);
+
+    PVector l0 = historyL.get(h);
+    PVector l1 = historyL.get(h-1);
+
+    if ((r0.y - r1.y) > 10)
+      rUpCount++;
+
+    if ((l0.y - l1.y) > 10)
+      lUpCount++;
+
+    if (abs(r0.y - l0.y) < 100)
+      rlSame++;
+  }
+
+
+  // println(rUpCount, lUpCount, rlSame);
+  
+  return (rUpCount * 2 > (HISTORY_SIZE - 1)
+    && lUpCount * 2 > (HISTORY_SIZE - 1)
+    && rlSame * 2 > (HISTORY_SIZE - 1)
+    );
+}
+
 
 
 
