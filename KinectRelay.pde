@@ -21,6 +21,10 @@
 
  Arduino arduino;
 
+  final int on = Arduino.LOW;
+  final int off = Arduino.HIGH;
+
+
  SimpleOpenNI  context;
  color[]       userClr = new color[] { 
   color(0, 127, 0), 
@@ -217,6 +221,7 @@ final int PIN_WASSERKESSEL = 8;
   for (int i = 0; i <= 13; i++)
   {
     arduino.pinMode(i, Arduino.OUTPUT);
+    arduino.digitalWrite(i, off);
   }
 //  }
 
@@ -276,9 +281,11 @@ void draw()
     // static gesture check
     //
 
-  final int GESTURE_HAND_FAR_FROM_BODY_MIN_Z = 400; //mm. todo slider
+  final int GESTURE_HAND_FAR_FROM_BODY_MIN_Z = 500; //mm. todo slider
   
 ///
+
+final int GESTURE_HAND_CHIN_MAX_Z = 200;
 final int GESTURE_HAND_CHIN_MAX_X = 100;
 final int GESTURE_HAND_CHIN_MIN_Y = 100;
 final int GESTURE_HAND_CHIN_MAX_Y = 300;
@@ -354,11 +361,12 @@ else
  gestureState[GESTURE_RIGHT_HAND_HAIR] = false; 
 }
 
-
-
-
-
-
+}
+else
+{
+   gestureState[GESTURE_RIGHT_HAND_CHIN] = false; 
+   gestureState[GESTURE_RIGHT_HAND_HAIR] = false; 
+   gestureState[GESTURE_RIGHT_HAND_FAR_FROM_BODY] = false; 
 }
 
 if (jointValid[SKEL_HEAD] && jointValid[SKEL_LEFT_HAND])
@@ -379,7 +387,7 @@ if (jointValid[SKEL_HEAD] && jointValid[SKEL_LEFT_HAND])
   }
 
 
-  if (diffZ > 0 && diffZ < GESTURE_HAND_FAR_FROM_BODY_MIN_Z 
+  if (diffZ > 0 && diffZ < GESTURE_HAND_CHIN_MAX_Z 
     && abs(diffX) < GESTURE_HAND_CHIN_MAX_X
     && diffY > GESTURE_HAND_CHIN_MIN_Y
     && diffY < GESTURE_HAND_CHIN_MAX_Y
@@ -409,6 +417,12 @@ else
  gestureState[GESTURE_LEFT_HAND_HAIR] = false; 
 }
 
+}
+else
+{
+   gestureState[GESTURE_LEFT_HAND_CHIN] = false; 
+   gestureState[GESTURE_LEFT_HAND_HAIR] = false; 
+   gestureState[GESTURE_LEFT_HAND_FAR_FROM_BODY] = false; 
 }
 
 if (jointValid[SKEL_HEAD] 
@@ -449,6 +463,11 @@ else
   gestureState[GESTURE_TWO_HANDS_EARS] = false; 
 }
 }
+else
+{
+   gestureState[GESTURE_TWO_HANDS_EARS] = false; 
+}
+
 
 
 
@@ -490,6 +509,11 @@ else
 {
   gestureState[GESTURE_TWO_HANDS_GOING_UP] = false; 
 }
+
+
+///
+updateArduino();
+
 
 }
 
@@ -778,3 +802,43 @@ void keyPressed()
   }
 }  
 
+void updateArduino()
+{
+
+  if (gestureState[GESTURE_RIGHT_HAND_CHIN] || gestureState[GESTURE_LEFT_HAND_CHIN])
+  {
+    arduino.digitalWrite(9, on);
+  }
+  else
+  {
+    arduino.digitalWrite(9, off);  
+  }
+
+  if (gestureState[GESTURE_RIGHT_HAND_HAIR] || gestureState[GESTURE_LEFT_HAND_HAIR])
+  {
+    arduino.digitalWrite(10, on);
+  }
+  else
+  {
+    arduino.digitalWrite(10, off);  
+  }
+
+  if (gestureState[GESTURE_RIGHT_HAND_FAR_FROM_BODY] || gestureState[GESTURE_LEFT_HAND_FAR_FROM_BODY])
+  {
+    arduino.digitalWrite(11, on);
+  }
+  else
+  {
+    arduino.digitalWrite(11, off);  
+  }
+
+  if (gestureState[GESTURE_TWO_HANDS_EARS])
+  {
+    arduino.digitalWrite(12, on);
+  }
+  else
+  {
+    arduino.digitalWrite(12, off);  
+  }
+
+}
