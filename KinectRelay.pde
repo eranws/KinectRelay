@@ -82,7 +82,7 @@ int[] joints = new int[SKEL_COUNT];
 PVector[] jointPos = new PVector[SKEL_COUNT];
 boolean[] jointValid = new boolean[SKEL_COUNT];
 
-final int HISTORY_SIZE = 10;
+final int HISTORY_SIZE = 20;
 
 //ArrayList<PVector> history = new ArrayList<PVector>();
 
@@ -109,10 +109,12 @@ final int GESTURE_COUNT = 11;
 /// GESTURE thresholds
 final int GESTURE_HAND_FAR_FROM_BODY_MIN_Z = 500; //mm. todo slider
 
-final int GESTURE_HAND_CHIN_MAX_Z = 200;
+
 final int GESTURE_HAND_CHIN_MAX_X = 100;
 final int GESTURE_HAND_CHIN_MIN_Y = 100;
 final int GESTURE_HAND_CHIN_MAX_Y = 300;
+final int GESTURE_HAND_CHIN_MAX_Z = 200;
+
 ///
 final int GESTURE_HAND_HAIR_MIN_X = -300;
 final int GESTURE_HAND_HAIR_MAX_X = 100;
@@ -314,15 +316,27 @@ void draw()
     	float diffYR = jointPos[SKEL_HEAD].y - jointPos[SKEL_RIGHT_HAND].y;
     	float diffZR = jointPos[SKEL_HEAD].z - jointPos[SKEL_RIGHT_HAND].z;
 
-    	gestureState[GESTURE_RIGHT_HAND_FAR_FROM_BODY] = checkHandFar(diffZR, diffZL);
-    	gestureState[GESTURE_RIGHT_HAND_CHIN] = checkHandChin(diffXR, diffYR, diffZR, diffXL, diffYL, diffZL);
-    	gestureState[GESTURE_RIGHT_HAND_HAIR] = checkHandHair(diffXR, diffYR, diffZR, diffXL, diffYL, diffZL);
+    	boolean rSteady = checkSteady(SKEL_RIGHT_HAND);
+    	boolean lSteady = checkSteady(SKEL_LEFT_HAND);
 
-    	gestureState[GESTURE_LEFT_HAND_FAR_FROM_BODY] = checkHandFar(diffZL, diffZR);
-    	gestureState[GESTURE_LEFT_HAND_CHIN] = checkHandChin(diffXL, diffYL, diffZL, diffXR, diffYR, diffZR);
-    	gestureState[GESTURE_LEFT_HAND_HAIR] = checkHandHair(-diffXL, diffYL, diffZL, diffXR, diffYR, diffZR);
+		if (rSteady)
+		{
+	    	gestureState[GESTURE_RIGHT_HAND_FAR_FROM_BODY] = checkHandFar(diffZR, diffZL);
+    		gestureState[GESTURE_RIGHT_HAND_CHIN] = checkHandChin(diffXR, diffYR, diffZR, diffXL, diffYL, diffZL);
+    		gestureState[GESTURE_RIGHT_HAND_HAIR] = checkHandHair(diffXR, diffYR, diffZR, diffXL, diffYL, diffZL);
+		}
 
-    	gestureState[GESTURE_TWO_HANDS_EARS] = checkTwoHandsEars(diffXR, diffYR, diffZR, diffXL, diffYL, diffZL);
+		if (lSteady)
+		{
+	    	gestureState[GESTURE_LEFT_HAND_FAR_FROM_BODY] = checkHandFar(diffZL, diffZR);
+    		gestureState[GESTURE_LEFT_HAND_CHIN] = checkHandChin(diffXL, diffYL, diffZL, diffXR, diffYR, diffZR);
+    		gestureState[GESTURE_LEFT_HAND_HAIR] = checkHandHair(-diffXL, diffYL, diffZL, diffXR, diffYR, diffZR);
+		}
+
+		if (lSteady && rSteady)
+		{
+    		gestureState[GESTURE_TWO_HANDS_EARS] = checkTwoHandsEars(diffXR, diffYR, diffZR, diffXL, diffYL, diffZL);
+    	}	
 
 
     	gestureState[GESTURE_RIGHT_HAND_CIRCLES] = checkCircle(SKEL_RIGHT_HAND);
@@ -380,6 +394,32 @@ updateArduino();
 } //end draw
 
 
+boolean checkSteady(int joint_id) {
+
+	ArrayList<PVector> history = histories[joint_id];
+
+	final int STEADY_COUNT = 4;
+
+	if (history.size() < STEADY_COUNT) {
+		return false;
+	}
+
+  // check for enough movement
+  float avgDist = 0.0f;
+  
+  for (int h=1; h < STEADY_COUNT; h++)
+  {
+  	PVector r0 = history.get(history.size()-h);
+  	PVector r1 = history.get(history.size()-h-1);
+
+  	avgDist += PVector.dist(r0, r1);
+  }
+
+  println(avgDist);
+
+  return avgDist < 40;
+}
+
 boolean checkHandFar(float diffZ, float diffZother)
 {
 	return  (diffZ > GESTURE_HAND_FAR_FROM_BODY_MIN_Z);
@@ -388,10 +428,12 @@ boolean checkHandFar(float diffZ, float diffZother)
 
 boolean checkHandChin(float diffX, float diffY, float diffZ, float diffXother, float diffYother, float diffZother)
 {
-	return (diffZ > 0 && diffZ < GESTURE_HAND_FAR_FROM_BODY_MIN_Z 
+	return (diffZ > 0 && diffZ < GESTURE_HAND_CHIN_MAX_Z 
 		&& abs(diffX) < GESTURE_HAND_CHIN_MAX_X
 		&& diffY > GESTURE_HAND_CHIN_MIN_Y
 		&& diffY < GESTURE_HAND_CHIN_MAX_Y
+
+		&& diffYother > GESTURE_HAND_CHIN_MAX_Y
 		);
 
   //  otherHandZ ???
@@ -405,6 +447,8 @@ boolean checkHandHair(float diffX, float diffY, float diffZ, float diffXother, f
 
 		&& diffY > GESTURE_HAND_HAIR_MIN_Y
 		&& diffY < GESTURE_HAND_HAIR_MAX_Y
+
+		&& diffYother > GESTURE_HAND_CHIN_MAX_Y
 		);
 }
 
