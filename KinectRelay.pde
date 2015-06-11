@@ -144,13 +144,23 @@ final int PIN_MIXER = 6;
 final int PIN_RADIOGERAT = 7;
 final int PIN_WASSERKESSEL = 8;
 
+final int STATE_IDLE = 0;
+final int STATE_MORE_THAN_ONE = 1;
+final int STATE_IN_SPOT = 2;
+int state = STATE_IDLE;
 
+Movie movie;
 Movie movie1;
 Movie movie2;
 
 
+boolean drawGui = true;
+boolean drawDepth = true;
+
+
 void movieEvent(Movie m) {
-	m.read();
+	if (m == movie)
+		m.read();
 }
 
 void setup()
@@ -165,6 +175,8 @@ void setup()
 	
 	movie2 = new Movie(this, "mov2.mp4");
     //movie2.loop();
+
+    movie = movie1;
 
     context = new SimpleOpenNI(this);
     if (context.isInit() == false)
@@ -248,116 +260,130 @@ void draw()
 {
 	//background(200, 0, 0);
 
-
-	//image(movie1, 0, 0);
+	image(movie, 0, 0);
  	//image(movie2, mouseX, mouseY);
+ 	context.update();
+
+ 	for (int i=0; i<GESTURE_COUNT; i++)
+ 	{
+ 		gestureState[i] = false;
+ 	}
+
+ 	int[] userList = context.getUsers();
+
+ 	int userId = -1;
+ 	int usersInSpot = 0;
+
+ 	for (int i=0; i<userList.length; i++){
+
+ 		if (context.isTrackingSkeleton(userList[i]))
+ 		{
+ 			stroke(color(255, 0, 0));
+ 			strokeWeight(6);
+ 			drawSkeleton(userList[i]);
+ 		}  
 
 
-  // update the cam
-  context.update();
-
-  // draw depthImageMap
-  //image(context.depthImage(), 0, 0);
-  image(context.userImage(), 0, 0);
+ 		PVector com = new PVector();
+ 		context.getCoM(userList[i], com);
 
 
-  for (int i=0; i<GESTURE_COUNT; i++)
-  {
-  	gestureState[i] = false;
-  }
+ 		PVector spot = new PVector(0, 0, 1500);
+ 		float spotRadiusMin = 300;
+ 		float spotRadiusMax = 400;
 
-  int[] userList = context.getUsers();
+ 		PVector ds = new PVector(com.x - spot.x, com.z - spot.z);
+ 		if (ds.mag() < spotRadiusMin)
+ 		{
+ 			usersInSpot++;
+ 			userId = userList[i];	
+ 		}
 
-  int userId = -1;
-  int usersInSpot = 0;
-
-  for (int i=0; i<userList.length; i++){
-
-  	if (context.isTrackingSkeleton(userList[i]))
-  	{
-  		stroke(color(255, 0, 0));
-  		strokeWeight(6);
-  		drawSkeleton(userList[i]);
-  	}  
+ 	}
 
 
-  	PVector com = new PVector();
-  	context.getCoM(userList[i], com);
-
-
-  	PVector spot = new PVector(0, 0, 1500);
-  	float spotRadiusMin = 300;
-  	float spotRadiusMax = 400;
-
-  	PVector ds = new PVector(com.x - spot.x, com.z - spot.z);
-  	if (ds.mag() < spotRadiusMin)
-  	{
-  		usersInSpot++;
-  		userId = userList[i];	
-  	}
-
-  }
-
-
-  if (usersInSpot == 0)
-  {
+ 	if (usersInSpot == 0)
+ 	{
   	//run demo after timeout
-  	for(int j = 0; j < SKEL_COUNT; j++)
+  	if (state != STATE_IDLE)
   	{
-  		histories[j].clear();
+  		state = STATE_IDLE;
+  		for(int j = 0; j < SKEL_COUNT; j++)
+  		{
+  			histories[j].clear();
+  		}
+  		movie1.loop();
+  		movie2.pause();
+
+  		movie = movie1;
   	}
 
   }
 
   if (usersInSpot > 1)
   {
-  	//turn off projector
+  	//TODO: turn off projector
   }
 
   if (usersInSpot == 1)
   {
+	if (state != STATE_IN_SPOT)
+  	{
+  		state = STATE_IN_SPOT;
+		movie1.pause();
+  		movie2.loop();
+
+  		movie = movie2;
+  	}
 
   	updateJointHistory(userId);
   	upsateGestureState();
   }
 
 
+    if (drawDepth)
+    {
+  // image(context.depthImage(), 0, 0)
+  image(context.userImage(), 0, 0);
+}
 
-    // update conductor: check gestureState and activate pins
-    // todo: patterns, pulses, etc.
-
-
-//draw UI
-for (int g=0; g < GESTURE_COUNT; g++)
+if (drawGui)
 {
-	int rectHeight = 12;
-	int rectWidth = 200;
-	int rectX = 50;
-	int rectY = 50;
 
-	int x = rectX;
-	int y = rectY + (rectHeight * 2) * g;
+	for (int g=0; g < GESTURE_COUNT; g++)
+	{
+		int rectHeight = 12;
+		int rectWidth = 200;
+		int rectX = 50;
+		int rectY = 50;
 
-	color onColor = color(255, 0, 0);
-	color offColor = color(50, 50, 50);
+		int x = rectX;
+		int y = rectY + (rectHeight * 2) * g;
 
-	fill(gestureState[g] ? onColor : offColor);
-	stroke(0);
+		color onColor = color(255, 0, 0);
+		color offColor = color(50, 50, 50);
 
-	rect(x, y, rectWidth, rectHeight);
+		fill(gestureState[g] ? onColor : offColor);
+		stroke(0);
+
+		rect(x, y, rectWidth, rectHeight);
+
+		fill(255);
+		textAlign(LEFT, CENTER);
+		textSize(rectHeight);
+		text(gestureName[g], x, y + rectHeight/2);
+
+	}
 
 	fill(255);
-	textAlign(LEFT, CENTER);
-	textSize(rectHeight);
-	text(gestureName[g], x, y + rectHeight/2);
+	textSize(20);
 
+	text("FPS: " + nf(round(frameRate),2), 10, 10); 
+
+//TODO draw 'arduino'
 }
 
 
-fill(255);
-textSize(20);
-
-text("FPS: " + nf(round(frameRate),2), 10, 10); 
 
 updateArduino();
 
@@ -376,7 +402,7 @@ boolean checkSteady(int joint_id) {
 
   // check for enough movement
   float avgDist = 0.0f;
-  
+
   for (int h=1; h < STEADY_COUNT; h++)
   {
   	PVector r0 = history.get(history.size()-h);
@@ -455,7 +481,7 @@ boolean checkCircle(int joint_id) {
   PVector avg = new PVector();
   avg.set(h0);
 
-  
+
   for (int h=1; h < history.size(); h++)
   {
   	PVector r0 = history.get(h);
@@ -467,7 +493,7 @@ boolean checkCircle(int joint_id) {
 
   final float ANGLE_MAX = 1.1f;
   boolean angleOK = true;
-  
+
 
   for (int h=2; h < history.size(); h++)
   {
@@ -476,7 +502,7 @@ boolean checkCircle(int joint_id) {
     PVector r0 = history.get(h);
     PVector r1 = history.get(h-1);
     PVector r2 = history.get(h-2);
-    
+
 
     PVector rdiff0 = PVector.sub(r0, r1);
     PVector rdiff1 = PVector.sub(r1, r2);
@@ -484,7 +510,7 @@ boolean checkCircle(int joint_id) {
 
     float angle = PVector.angleBetween(rdiff0, rdiff1);
     //println("angle: "+angle);
-    
+
 
     if (angle > ANGLE_MAX)
     	angleOK = false;
@@ -521,7 +547,7 @@ for (int h=0; h < history.size(); h++)
 }
 
   //println(minDistFromAvg, maxDistFromAvg);
-  
+
   return (avgDist > 30
   	&& minDistFromAvg > 20
   	&& maxDistFromAvg / (minDistFromAvg+0.001) < 3
@@ -565,7 +591,7 @@ boolean checkTwoHandsGoingUp() {
 
 
   // println(rUpCount, lUpCount, rlSame);
-  
+
   return (rUpCount * 2 > (HISTORY_SIZE - 1)
   	&& lUpCount * 2 > (HISTORY_SIZE - 1)
   	&& rlSame * 2 > (HISTORY_SIZE - 1)
@@ -730,9 +756,14 @@ void keyPressed()
 {
 	switch(key)
 	{
-		case ' ':
-		context.setMirror(!context.mirror());
+		case 'g':
+		drawGui = !drawGui;
 		break;
+
+		case 'd':
+		drawDepth = !drawDepth;
+		break;
+
 	}
 }  
 
