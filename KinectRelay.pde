@@ -630,23 +630,30 @@ boolean checkCircle(int joint_id) {
     	angleOK = false;
 
     //draw history
-    PVector p0 = new PVector();
-    PVector p1 = new PVector();
-    context.convertRealWorldToProjective(r0, p0);
-    context.convertRealWorldToProjective(r1, p1);
+    if (drawGui)
+    {
+    	PVector p0 = new PVector();
+    	PVector p1 = new PVector();
+    	context.convertRealWorldToProjective(r0, p0);
+    	context.convertRealWorldToProjective(r1, p1);
 
-    line(p0.x, p0.y, p1.x, p1.y);
-    rect(p1.x, p1.y, 3, 3);
+    	line(p0.x, p0.y, p1.x, p1.y);
+    	rect(p1.x, p1.y, 3, 3);
+    }
+
 }
 
 avg.div(history.size());
 avgDist /= (history.size() - 1);
 
-PVector avgProj = new PVector();
-context.convertRealWorldToProjective(avg, avgProj);
+    if (drawGui)
+    {
+    	PVector avgProj = new PVector();
+		context.convertRealWorldToProjective(avg, avgProj);
 
-fill(0, 255, 0);
-rect(avgProj.x, avgProj.y, 5, 5);
+		fill(0, 255, 0);
+		rect(avgProj.x, avgProj.y, 5, 5);
+	}
 
 float minDistFromAvg = 1000.0;
 float maxDistFromAvg = 0.0;
@@ -783,7 +790,7 @@ void drawJoint(PVector real)
 void drawJointDiff(PVector r1, PVector r2)
 {
 	if (!drawDepth) return;
-	
+
 	PVector p1 = new PVector();
 	context.convertRealWorldToProjective(r1, p1);
 
