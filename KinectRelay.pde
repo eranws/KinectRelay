@@ -42,8 +42,10 @@
  final int PIN_VENTILATOR	= 4;
  final int PIN_VACUUM		= 5;
  final int PIN_BLENDER		= 6;
+ final int PIN_PROJECTOR	= 7;
 
- final int PIN_COUNT = 7;
+ final int PIN_COUNT = 8;
+ public int pinMap[] = new int[PIN_COUNT];
 
  public class Sequencer
  {
@@ -51,8 +53,7 @@
 
 
  	public ActionArrayList actions[] = new ActionArrayList[PIN_COUNT];
- 	public int pinMap[] = new int[PIN_COUNT];
-
+ 	
 
  	Sequencer()
  	{
@@ -61,7 +62,8 @@
  			actions[i] = new ActionArrayList();
  		}
 
- 		pinMap[PIN_RAZOR] 		= 13;
+ 		pinMap[PIN_PROJECTOR] 	= 5;
+ 		pinMap[PIN_RAZOR] 		= 6;
  		pinMap[PIN_HAIR_DRYER]	= 7;
  		pinMap[PIN_HAND_MIXER]	= 8;
  		pinMap[PIN_RADIO]		= 9;
@@ -248,8 +250,10 @@ Movie movie1;
 Movie movie2;
 
 
-boolean drawGui = true;
-boolean drawDepth = true;
+boolean drawGui = false;
+boolean drawDepth = false;
+boolean drawMovie = true;
+
 
 
 void movieEvent(Movie m) {
@@ -266,6 +270,7 @@ void setup()
 	movie1 = new Movie(this, "mov1.mp4");
 	movie2 = new Movie(this, "mov2.mp4");
 	currentMovie = movie1;
+	currentMovie.loop();
 
 	context = new SimpleOpenNI(this);
 	if (context.isInit() == false)
@@ -333,7 +338,7 @@ void setup()
 
 
 
-  seq = new Sequencer(); // inits arduino
+  seq = new Sequencer();
 
   String[] arduinoList = Arduino.list();
 
@@ -342,6 +347,7 @@ void setup()
   {
   	arduino.pinMode(i, Arduino.OUTPUT);
   }
+
   turnOffAll();
 
   noSmooth();
@@ -352,7 +358,11 @@ void draw()
 {
 	//background(200, 0, 0);
 
-	image(currentMovie, 0, 0);
+	if (drawMovie)
+	{
+		image(currentMovie, 0, 0, displayWidth, displayHeight);	
+	}
+	
  	//image(movie2, mouseX, mouseY);
  	context.update();
  	if (drawDepth)
@@ -374,9 +384,12 @@ void draw()
 
  		if (context.isTrackingSkeleton(userList[i]))
  		{
- 			stroke(color(255, 0, 0));
- 			strokeWeight(6);
- 			drawSkeleton(userList[i]);
+ 			if (drawDepth)
+ 			{
+ 				stroke(color(255, 0, 0));
+ 				strokeWeight(6);
+ 				drawSkeleton(userList[i]);
+ 			}
  		}  
 
 
@@ -384,7 +397,7 @@ void draw()
  		context.getCoM(userList[i], com);
 
 
- 		PVector spot = new PVector(0, 0, 2000);
+ 		PVector spot = new PVector(0, 0, 2500);
  		float spotRadiusMin = 300;
  		float spotRadiusMax = 400;
 
@@ -408,17 +421,26 @@ void draw()
   		{
   			histories[j].clear();
   		}
+  		
   		movie1.loop();
   		movie2.pause();
+		currentMovie = movie1;
 
-  		currentMovie = movie1;
+		arduino.digitalWrite(pinMap[PIN_PROJECTOR], off);
   	}
 
   }
 
   if (usersInSpot > 1)
   {
-  	//TODO: turn off projector
+  	
+  	if (state != STATE_MORE_THAN_ONE)
+  	{
+  		state = STATE_MORE_THAN_ONE;
+  		//TODO: movie for more than one
+		arduino.digitalWrite(pinMap[PIN_PROJECTOR], off);
+  	}
+  	
   }
 
   if (usersInSpot == 1)
@@ -426,10 +448,12 @@ void draw()
   	if (state != STATE_IN_SPOT)
   	{
   		state = STATE_IN_SPOT;
+  		
   		movie1.pause();
   		movie2.loop();
-
   		currentMovie = movie2;
+		
+		arduino.digitalWrite(pinMap[PIN_PROJECTOR], on);
   	}
 
   	updateJointHistory(userId);
@@ -737,7 +761,7 @@ boolean checkFullBodyTwist() {
   }
 
 
-  println(minDistFromAvgAngle);
+  //println(minDistFromAvgAngle);
 
   return false; //minDistFromAvgAngle < THR
 
@@ -856,6 +880,12 @@ void keyPressed()
 		case 'd':
 		drawDepth = !drawDepth;
 		break;
+
+		case 'm':
+		drawMovie = !drawMovie;
+		break;
+
+		
 
 	}
 }  
@@ -989,9 +1019,22 @@ void updateArduino()
 
 void turnOffAll()
 {
+	//fast one
 	for (int i = 0; i <= 13; i++)
 	{
 		arduino.digitalWrite(i, off);
 	}
+	delay(1000);
+
+	for (int i = 0; i <= 13; i++)
+	{
+		arduino.digitalWrite(i, off);
+		delay(100);
+	}
 	seq.clear();
 }
+
+void stop()
+{
+	context.close();
+} 
