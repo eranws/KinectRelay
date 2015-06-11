@@ -21,18 +21,120 @@
 
  public class PVectorArrayList extends ArrayList<PVector>{}
 
- Arduino arduino;
+ public class Action
+ {
+ 	public int what;
+ 	public int when;
+ 	Action(int what, int when)
+ 	{
+ 		this.what = what;
+ 		this.when = when;
+ 	}
 
- final int on = Arduino.LOW;
- final int off = Arduino.HIGH;
+ }
+
+ public class ActionArrayList extends ArrayList<Action>{}
+
+ final int PIN_RAZOR		= 0;
+ final int PIN_HAIR_DRYER	= 1; 
+ final int PIN_HAND_MIXER	= 2;
+ final int PIN_RADIO		= 3;
+ final int PIN_VENTILATOR	= 4;
+ final int PIN_VACUUM		= 5;
+ final int PIN_BLENDER		= 6;
+
+ final int PIN_COUNT = 7;
+
+ public class Sequencer
+ {
 
 
- SimpleOpenNI  context;
- color[]       userClr = new color[] { 
- 	color(0, 127, 0), 
- 	color(0, 0, 127), 
- 	color(0, 127, 127)
- };
+
+ 	public ActionArrayList actions[] = new ActionArrayList[PIN_COUNT];
+ 	public int pinMap[] = new int[PIN_COUNT];
+
+
+ 	Sequencer()
+ 	{
+ 		for(int i = 0; i < PIN_COUNT; i++)
+ 		{
+ 			actions[i] = new ActionArrayList();
+ 		}
+
+ 		pinMap[PIN_RAZOR] 		= 13;
+ 		pinMap[PIN_HAIR_DRYER]	= 7;
+ 		pinMap[PIN_HAND_MIXER]	= 8;
+ 		pinMap[PIN_RADIO]		= 9;
+ 		pinMap[PIN_VENTILATOR] 	= 10;
+ 		pinMap[PIN_VACUUM] 		= 11;
+ 		pinMap[PIN_BLENDER] 	= 12;
+ 	}
+
+ 	void clear()
+ 	{
+		for(int i = 0; i < PIN_COUNT; i++)
+ 		{
+ 			actions[i].clear();
+ 		}
+ 	}
+
+ 	void addSequence(int pin, int[] s, int rep)
+ 	{
+ 		if (seq.actions[pin].isEmpty())
+ 		{
+ 			int cumsum = millis();
+ 			for (int r=0; r<rep; r++)
+ 			{
+ 				for (int i=0; i<s.length; i++)
+ 				{
+
+ 					seq.actions[pin].add(new Action(i%2==0 ? on : off, cumsum));
+ 					cumsum += s[i];
+ 				}
+ 			}
+ 		}
+ 	}
+
+ 	void update()
+ 	{
+		// check time of head of queue - turn on/off pin
+		for(int i = 0; i < PIN_COUNT; i++)
+		{
+			if (actions[i].size() > 0)
+			{
+				Action a = actions[i].get(0);
+				if (a.when < millis())
+				{
+					actions[i].remove(0);
+					arduino.digitalWrite(pinMap[i], a.what);
+				}
+			}
+		}
+
+	}
+
+	void draw()
+	{
+		// draw actions[]
+	}
+
+
+}
+
+Sequencer seq;
+
+Arduino arduino;
+
+final int on = Arduino.LOW; //inverted relay 
+final int off = Arduino.HIGH; //inverted relay
+
+
+SimpleOpenNI  context;
+color[]       userClr = new color[] { 
+	color(0, 127, 0), 
+	color(0, 0, 127), 
+	color(0, 127, 127)
+};
 
 
 
@@ -135,21 +237,13 @@ final int GESTURE_TWO_HANDS_EARS_MAX_Z = 100;
 boolean gestureState[] = new boolean[GESTURE_COUNT];
 String gestureName[] = new String[GESTURE_COUNT];
 
-final int PIN_FOHN = 1;
-final int PIN_LUFTER = 2;
-final int PIN_RASIERAPPARAT = 3;
-final int PIN_BOHRMASCHINE = 4;
-final int PIN_STAUBSAUGER = 5;
-final int PIN_MIXER = 6;
-final int PIN_RADIOGERAT = 7;
-final int PIN_WASSERKESSEL = 8;
 
 final int STATE_IDLE = 0;
 final int STATE_MORE_THAN_ONE = 1;
 final int STATE_IN_SPOT = 2;
 int state = STATE_IDLE;
 
-Movie movie;
+Movie currentMovie;
 Movie movie1;
 Movie movie2;
 
@@ -159,8 +253,7 @@ boolean drawDepth = true;
 
 
 void movieEvent(Movie m) {
-	if (m == movie)
-		m.read();
+	m.read();
 }
 
 void setup()
@@ -171,22 +264,18 @@ void setup()
 	frameRate(60);
 
 	movie1 = new Movie(this, "mov1.mp4");
-	movie1.loop();
-	
 	movie2 = new Movie(this, "mov2.mp4");
-    //movie2.loop();
+	currentMovie = movie1;
 
-    movie = movie1;
+	context = new SimpleOpenNI(this);
+	if (context.isInit() == false)
+	{
+		println("Can't init SimpleOpenNI, maybe the camera is not connected!"); 
+		exit();
+		return;
+	}
 
-    context = new SimpleOpenNI(this);
-    if (context.isInit() == false)
-    {
-    	println("Can't init SimpleOpenNI, maybe the camera is not connected!"); 
-    	exit();
-    	return;
-    }
-
-    context.setMirror(true);
+	context.setMirror(true);
   // enable depthMap generation 
   context.enableDepth();
   //context.enableDepth(320,240,30); // faster
@@ -243,14 +332,17 @@ void setup()
   gestureName[GESTURE_FULL_BODY_TWIST] = "full body twist";
 
 
+
+  seq = new Sequencer(); // inits arduino
+
   String[] arduinoList = Arduino.list();
 
   arduino = new Arduino(this, arduinoList[0], 57600);
   for (int i = 0; i <= 13; i++)
   {
   	arduino.pinMode(i, Arduino.OUTPUT);
-  	arduino.digitalWrite(i, off);
   }
+  turnOffAll();
 
   noSmooth();
 
@@ -260,10 +352,14 @@ void draw()
 {
 	//background(200, 0, 0);
 
-	image(movie, 0, 0);
+	image(currentMovie, 0, 0);
  	//image(movie2, mouseX, mouseY);
  	context.update();
-
+ 	if (drawDepth)
+ 	{
+ 		/* image(context.depthImage(), 0, 0) */
+ 		image(context.userImage(), 0, 0);
+ 	}
  	for (int i=0; i<GESTURE_COUNT; i++)
  	{
  		gestureState[i] = false;
@@ -288,7 +384,7 @@ void draw()
  		context.getCoM(userList[i], com);
 
 
- 		PVector spot = new PVector(0, 0, 1500);
+ 		PVector spot = new PVector(0, 0, 2000);
  		float spotRadiusMin = 300;
  		float spotRadiusMax = 400;
 
@@ -315,7 +411,7 @@ void draw()
   		movie1.loop();
   		movie2.pause();
 
-  		movie = movie1;
+  		currentMovie = movie1;
   	}
 
   }
@@ -327,13 +423,13 @@ void draw()
 
   if (usersInSpot == 1)
   {
-	if (state != STATE_IN_SPOT)
+  	if (state != STATE_IN_SPOT)
   	{
   		state = STATE_IN_SPOT;
-		movie1.pause();
+  		movie1.pause();
   		movie2.loop();
 
-  		movie = movie2;
+  		currentMovie = movie2;
   	}
 
   	updateJointHistory(userId);
@@ -341,49 +437,46 @@ void draw()
   }
 
 
-    if (drawDepth)
-    {
-  // image(context.depthImage(), 0, 0)
-  image(context.userImage(), 0, 0);
-}
 
-if (drawGui)
-{
 
-	for (int g=0; g < GESTURE_COUNT; g++)
-	{
-		int rectHeight = 12;
-		int rectWidth = 200;
-		int rectX = 50;
-		int rectY = 50;
+  if (drawGui)
+  {
 
-		int x = rectX;
-		int y = rectY + (rectHeight * 2) * g;
+  	for (int g=0; g < GESTURE_COUNT; g++)
+  	{
+  		int rectHeight = 12;
+  		int rectWidth = 200;
+  		int rectX = 50;
+  		int rectY = 50;
 
-		color onColor = color(255, 0, 0);
-		color offColor = color(50, 50, 50);
+  		int x = rectX;
+  		int y = rectY + (rectHeight * 2) * g;
 
-		fill(gestureState[g] ? onColor : offColor);
-		stroke(0);
+  		color onColor = color(255, 0, 0);
+  		color offColor = color(50, 50, 50);
 
-		rect(x, y, rectWidth, rectHeight);
+  		fill(gestureState[g] ? onColor : offColor);
+  		stroke(0);
 
-		fill(255);
-		textAlign(LEFT, CENTER);
-		textSize(rectHeight);
-		text(gestureName[g], x, y + rectHeight/2);
+  		rect(x, y, rectWidth, rectHeight);
 
-	}
+  		fill(255);
+  		textAlign(LEFT, CENTER);
+  		textSize(rectHeight);
+  		text(gestureName[g], x, y + rectHeight/2);
 
-	fill(255);
-	textSize(20);
+  	}
 
-	text("FPS: " + nf(round(frameRate),2), 10, 10); 
+  	fill(255);
+  	textSize(20);
+
+  	text("FPS: " + nf(round(frameRate),2), 10, 10); 
 
 //TODO draw 'arduino'
 }
 
 
+seq.update();
 
 updateArduino();
 
@@ -836,40 +929,69 @@ void upsateGestureState()
 
 void updateArduino()
 {
-
 	if (gestureState[GESTURE_RIGHT_HAND_CHIN] || gestureState[GESTURE_LEFT_HAND_CHIN])
 	{
-		arduino.digitalWrite(9, on);
-	}
-	else
-	{
-		arduino.digitalWrite(9, off);  
+		int[] s = new int[]{120, 120, 120, 120, 120, 120, 120, 120, 1000, 500};
+		int repeat = 2;
+
+		seq.addSequence(PIN_RAZOR, s, repeat);
 	}
 
 	if (gestureState[GESTURE_RIGHT_HAND_HAIR] || gestureState[GESTURE_LEFT_HAND_HAIR])
 	{
-		arduino.digitalWrite(10, on);
-	}
-	else
-	{
-		arduino.digitalWrite(10, off);  
+		//Hair Dryer:
+		int[] s = new int[]{3000, 1000};
+		int repeat = 4;
+		seq.addSequence(PIN_HAIR_DRYER, s, repeat);
 	}
 
 	if (gestureState[GESTURE_RIGHT_HAND_FAR_FROM_BODY] || gestureState[GESTURE_LEFT_HAND_FAR_FROM_BODY])
 	{
-		arduino.digitalWrite(11, on);
-	}
-	else
-	{
-		arduino.digitalWrite(11, off);  
+		int[] s = new int[]{750, 250, 125, 125, 125, 125};
+		int repeat = 4;
+		seq.addSequence(PIN_HAND_MIXER, s, repeat);
 	}
 
 	if (gestureState[GESTURE_TWO_HANDS_EARS])
 	{
-		arduino.digitalWrite(12, on);
+		//Radio:
+		int[] s = new int[]{500, 500, 2000, 1000};
+		int repeat = 2;
+		seq.addSequence(PIN_RADIO, s, repeat);
 	}
-	else
+
+	if (gestureState[GESTURE_RIGHT_HAND_CIRCLES] || gestureState[GESTURE_LEFT_HAND_CIRCLES])
 	{
-		arduino.digitalWrite(12, off);  
+		//Stand Fan:
+		int[] s = new int[]{4000, 2000};
+		int repeat = 6;
+		seq.addSequence(PIN_VENTILATOR, s, repeat);
 	}
+
+
+	if (gestureState[GESTURE_TWO_HANDS_GOING_UP])
+	{
+		//Vacuum:
+		int[] s = new int[]{500, 500, 500, 500, 1500, 500};
+		int repeat = 4;
+		seq.addSequence(PIN_VACUUM, s, repeat);
+	}
+
+	if (gestureState[GESTURE_FULL_BODY_TWIST])
+	{
+		//Blender:
+		int[] s = new int[]{500, 500, 500, 500, 1000, 500};
+		int repeat = 4;
+		seq.addSequence(PIN_BLENDER, s, repeat);
+	}
+
+}
+
+void turnOffAll()
+{
+	for (int i = 0; i <= 13; i++)
+	{
+		arduino.digitalWrite(i, off);
+	}
+	seq.clear();
 }
