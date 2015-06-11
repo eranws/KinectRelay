@@ -9,6 +9,8 @@
  * ----------------------------------------------------------------------------
  */
 
+ import processing.video.*;
+
  import SimpleOpenNI.*;
 
  import processing.serial.*;
@@ -143,38 +145,36 @@ final int PIN_RADIOGERAT = 7;
 final int PIN_WASSERKESSEL = 8;
 
 
-/*
-    public class Conductor {
+Movie movie1;
+Movie movie2;
 
-      onGesture(g){
-        switch g:
 
-        case GESTURE_HAND_HAIR: PIN_FOHN,
-        case GESTURE_SINGLE_HAND_CIRCLES:  PIN_LUFTER,
-        case GESTURE_HAND_CHIN: PIN_RASIERAPPARAT,
-        case GESTURE_HAND_FAR_FROM_BODY:    PIN_BOHRMASCHINE,
-        case GESTURE_TWO_HANDS_GOING_UP: PIN_STAUBSAUGER,
-        case GESTURE_FULL_BODY_TWIST: PIN_MIXER,
-        case GESTURE_TWO_HANDS_EARS: PIN_RADIOGERAT,
-  //PIN_WASSERKESSEL;
-      }
-    }
-    */
+void movieEvent(Movie m) {
+	m.read();
+}
 
-    void setup()
+void setup()
+{
+	//size(640, 480);
+	size(displayWidth, displayHeight);
+
+	frameRate(60);
+
+	movie1 = new Movie(this, "mov1.mp4");
+	movie1.loop();
+	
+	movie2 = new Movie(this, "mov2.mp4");
+    //movie2.loop();
+
+    context = new SimpleOpenNI(this);
+    if (context.isInit() == false)
     {
-    	size(640, 480);
-    	frameRate(30);
+    	println("Can't init SimpleOpenNI, maybe the camera is not connected!"); 
+    	exit();
+    	return;
+    }
 
-    	context = new SimpleOpenNI(this);
-    	if (context.isInit() == false)
-    	{
-    		println("Can't init SimpleOpenNI, maybe the camera is not connected!"); 
-    		exit();
-    		return;
-    	}
-
-    	context.setMirror(true);
+    context.setMirror(true);
   // enable depthMap generation 
   context.enableDepth();
   //context.enableDepth(320,240,30); // faster
@@ -233,25 +233,25 @@ final int PIN_WASSERKESSEL = 8;
 
   String[] arduinoList = Arduino.list();
 
-//  if (arduinoList.length > 0)
-//  {
-
-	arduino = new Arduino(this, arduinoList[0], 57600);
-  // Set the Arduino digital pins as outputs.
+  arduino = new Arduino(this, arduinoList[0], 57600);
   for (int i = 0; i <= 13; i++)
   {
   	arduino.pinMode(i, Arduino.OUTPUT);
   	arduino.digitalWrite(i, off);
   }
-//  }
 
-noSmooth();
+  noSmooth();
 
 }
 
 void draw()
 {
-	background(200, 0, 0);
+	//background(200, 0, 0);
+
+
+	//image(movie1, 0, 0);
+ 	//image(movie2, mouseX, mouseY);
+
 
   // update the cam
   context.update();
@@ -266,10 +266,13 @@ void draw()
   	gestureState[i] = false;
   }
 
-  // draw the skeleton if it's available
   int[] userList = context.getUsers();
-  for (int i=0; i<userList.length; i++)
-  {
+
+  int userId = -1;
+  int usersInSpot = 0;
+
+  for (int i=0; i<userList.length; i++){
+
   	if (context.isTrackingSkeleton(userList[i]))
   	{
   		stroke(color(255, 0, 0));
@@ -277,79 +280,46 @@ void draw()
   		drawSkeleton(userList[i]);
   	}  
 
-    // if in spot
+
+  	PVector com = new PVector();
+  	context.getCoM(userList[i], com);
 
 
-    int userId = userList[i];
+  	PVector spot = new PVector(0, 0, 1500);
+  	float spotRadiusMin = 300;
+  	float spotRadiusMax = 400;
 
-    for(int j = 0; j < SKEL_COUNT; j++)
-    {
-    	float confidence = context.getJointPositionSkeleton(userId, joints[j], jointPos[j]);
-    	jointValid[j] = confidence > 0.5;
+  	PVector ds = new PVector(com.x - spot.x, com.z - spot.z);
+  	if (ds.mag() < spotRadiusMin)
+  	{
+  		usersInSpot++;
+  		userId = userList[i];	
+  	}
 
-    	if(jointValid[j])
-    	{
-    		histories[j].add(new PVector(jointPos[j].x, jointPos[j].y, jointPos[j].z));
-    		if (histories[j].size() > HISTORY_SIZE)
-    		{
-    			histories[j].remove(0);
-    		}
-    	}
-    	else
-    	{
-    		histories[j].clear();
-    	}
-    }
+  }
 
 
-    if (jointValid[SKEL_HEAD] 
-    	&& jointValid[SKEL_RIGHT_HAND]
-    	&& jointValid[SKEL_LEFT_HAND]
-    	)
-    {
+  if (usersInSpot == 0)
+  {
+  	//run demo after timeout
+  	for(int j = 0; j < SKEL_COUNT; j++)
+  	{
+  		histories[j].clear();
+  	}
 
-    	float diffXL = jointPos[SKEL_HEAD].x - jointPos[SKEL_LEFT_HAND].x;
-    	float diffYL = jointPos[SKEL_HEAD].y - jointPos[SKEL_LEFT_HAND].y;
-    	float diffZL = jointPos[SKEL_HEAD].z - jointPos[SKEL_LEFT_HAND].z;
+  }
 
-    	float diffXR = jointPos[SKEL_HEAD].x - jointPos[SKEL_RIGHT_HAND].x;
-    	float diffYR = jointPos[SKEL_HEAD].y - jointPos[SKEL_RIGHT_HAND].y;
-    	float diffZR = jointPos[SKEL_HEAD].z - jointPos[SKEL_RIGHT_HAND].z;
+  if (usersInSpot > 1)
+  {
+  	//turn off projector
+  }
 
-    	boolean rSteady = checkSteady(SKEL_RIGHT_HAND);
-    	boolean lSteady = checkSteady(SKEL_LEFT_HAND);
+  if (usersInSpot == 1)
+  {
 
-		if (rSteady)
-		{
-	    	gestureState[GESTURE_RIGHT_HAND_FAR_FROM_BODY] = checkHandFar(diffZR, diffZL);
-    		gestureState[GESTURE_RIGHT_HAND_CHIN] = checkHandChin(diffXR, diffYR, diffZR, diffXL, diffYL, diffZL);
-    		gestureState[GESTURE_RIGHT_HAND_HAIR] = checkHandHair(diffXR, diffYR, diffZR, diffXL, diffYL, diffZL);
-		}
-
-		if (lSteady)
-		{
-	    	gestureState[GESTURE_LEFT_HAND_FAR_FROM_BODY] = checkHandFar(diffZL, diffZR);
-    		gestureState[GESTURE_LEFT_HAND_CHIN] = checkHandChin(diffXL, diffYL, diffZL, diffXR, diffYR, diffZR);
-    		gestureState[GESTURE_LEFT_HAND_HAIR] = checkHandHair(-diffXL, diffYL, diffZL, diffXR, diffYR, diffZR);
-		}
-
-		if (lSteady && rSteady)
-		{
-    		gestureState[GESTURE_TWO_HANDS_EARS] = checkTwoHandsEars(diffXR, diffYR, diffZR, diffXL, diffYL, diffZL);
-    	}	
-
-
-    	gestureState[GESTURE_RIGHT_HAND_CIRCLES] = checkCircle(SKEL_RIGHT_HAND);
-    	gestureState[GESTURE_LEFT_HAND_CIRCLES] = checkCircle(SKEL_LEFT_HAND);
-
-
-    	gestureState[GESTURE_TWO_HANDS_GOING_UP] = checkTwoHandsGoingUp();
-    	gestureState[GESTURE_FULL_BODY_TWIST] = checkFullBodyTwist();
-    }
-///
-
-
-}
+  	updateJointHistory(userId);
+  	upsateGestureState();
+  }
 
 
 
@@ -415,7 +385,7 @@ boolean checkSteady(int joint_id) {
   	avgDist += PVector.dist(r0, r1);
   }
 
-  println(avgDist);
+  //println(avgDist);
 
   return avgDist < 40;
 }
@@ -648,7 +618,7 @@ boolean checkFullBodyTwist() {
   }
 
 
-  //println(minDistFromAvgAngle);
+  println(minDistFromAvgAngle);
 
   return false; //minDistFromAvgAngle < THR
 
@@ -766,6 +736,73 @@ void keyPressed()
 	}
 }  
 
+void updateJointHistory(int userId)
+{
+	for(int j = 0; j < SKEL_COUNT; j++)
+	{
+		float confidence = context.getJointPositionSkeleton(userId, joints[j], jointPos[j]);
+		jointValid[j] = confidence > 0.5;
+
+		if(jointValid[j])
+		{
+			histories[j].add(new PVector(jointPos[j].x, jointPos[j].y, jointPos[j].z));
+			if (histories[j].size() > HISTORY_SIZE)
+			{
+				histories[j].remove(0);
+			}
+		}
+		else
+		{
+			histories[j].clear();
+		}
+	}
+}
+
+void upsateGestureState()
+{	
+	if (jointValid[SKEL_HEAD] && jointValid[SKEL_RIGHT_HAND] && jointValid[SKEL_LEFT_HAND])
+	{    	
+		float diffXL = jointPos[SKEL_HEAD].x - jointPos[SKEL_LEFT_HAND].x;
+		float diffYL = jointPos[SKEL_HEAD].y - jointPos[SKEL_LEFT_HAND].y;
+		float diffZL = jointPos[SKEL_HEAD].z - jointPos[SKEL_LEFT_HAND].z;
+
+		float diffXR = jointPos[SKEL_HEAD].x - jointPos[SKEL_RIGHT_HAND].x;
+		float diffYR = jointPos[SKEL_HEAD].y - jointPos[SKEL_RIGHT_HAND].y;
+		float diffZR = jointPos[SKEL_HEAD].z - jointPos[SKEL_RIGHT_HAND].z;
+
+		boolean rSteady = checkSteady(SKEL_RIGHT_HAND);
+		boolean lSteady = checkSteady(SKEL_LEFT_HAND);
+
+		if (rSteady)
+		{
+			gestureState[GESTURE_RIGHT_HAND_FAR_FROM_BODY] = checkHandFar(diffZR, diffZL);
+			gestureState[GESTURE_RIGHT_HAND_CHIN] = checkHandChin(diffXR, diffYR, diffZR, diffXL, diffYL, diffZL);
+			gestureState[GESTURE_RIGHT_HAND_HAIR] = checkHandHair(diffXR, diffYR, diffZR, diffXL, diffYL, diffZL);
+		}
+
+		if (lSteady)
+		{
+			gestureState[GESTURE_LEFT_HAND_FAR_FROM_BODY] = checkHandFar(diffZL, diffZR);
+			gestureState[GESTURE_LEFT_HAND_CHIN] = checkHandChin(diffXL, diffYL, diffZL, diffXR, diffYR, diffZR);
+			gestureState[GESTURE_LEFT_HAND_HAIR] = checkHandHair(-diffXL, diffYL, diffZL, diffXR, diffYR, diffZR);
+		}
+
+		if (lSteady && rSteady)
+		{
+			gestureState[GESTURE_TWO_HANDS_EARS] = checkTwoHandsEars(diffXR, diffYR, diffZR, diffXL, diffYL, diffZL);
+		}	
+
+
+		gestureState[GESTURE_RIGHT_HAND_CIRCLES] = checkCircle(SKEL_RIGHT_HAND);
+		gestureState[GESTURE_LEFT_HAND_CIRCLES] = checkCircle(SKEL_LEFT_HAND);
+
+
+		gestureState[GESTURE_TWO_HANDS_GOING_UP] = checkTwoHandsGoingUp();
+		gestureState[GESTURE_FULL_BODY_TWIST] = checkFullBodyTwist();
+	}
+}
+
+
 void updateArduino()
 {
 
@@ -804,5 +841,4 @@ void updateArduino()
 	{
 		arduino.digitalWrite(12, off);  
 	}
-
 }
