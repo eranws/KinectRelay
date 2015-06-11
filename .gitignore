@@ -4,3 +4,6 @@ interaction-1.pdf
 application.windows32/
 application.windows64/
 build-tmp/KinectRelay$PVectorArrayList.class
+build-tmp/KinectRelay$Action.class
+build-tmp/KinectRelay$ActionArrayList.class
+build-tmp/KinectRelay$Sequencer.class
