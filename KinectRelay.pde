@@ -384,12 +384,9 @@ void draw()
 
  		if (context.isTrackingSkeleton(userList[i]))
  		{
- 			if (drawDepth)
- 			{
- 				stroke(color(255, 0, 0));
- 				strokeWeight(6);
- 				drawSkeleton(userList[i]);
- 			}
+			stroke(color(255, 0, 0));
+			strokeWeight(6);
+			drawSkeleton(userList[i]);
  		}  
 
 
@@ -771,6 +768,8 @@ boolean checkFullBodyTwist() {
 
 void drawJoint(PVector real)
 {
+	if (!drawDepth) return;
+
 	PVector p = new PVector();
 	context.convertRealWorldToProjective(real, p);
 
@@ -783,6 +782,8 @@ void drawJoint(PVector real)
 
 void drawJointDiff(PVector r1, PVector r2)
 {
+	if (!drawDepth) return;
+	
 	PVector p1 = new PVector();
 	context.convertRealWorldToProjective(r1, p1);
 
@@ -816,7 +817,7 @@ void drawJointDiff(PVector r1, PVector r2)
 // draw the skeleton with the selected joints
 void drawSkeleton(int userId)
 {
-  // to get the 3d joint data
+ 	if (!drawDepth) return;
   /*
   PVector jointPos = new PVector();
    context.getJointPositionSkeleton(userId,SimpleOpenNI.SKEL_NECK,jointPos);
