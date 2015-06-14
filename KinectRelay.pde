@@ -248,6 +248,9 @@ int state = STATE_IDLE;
 Movie currentMovie;
 Movie movie1;
 Movie movie2;
+Movie movie3; // more than 1
+Movie movie4; // mov2 -> mov1
+Movie movie5; // mov1 -> mov2
 
 
 boolean drawGui = false;
@@ -269,6 +272,10 @@ void setup()
 
 	movie1 = new Movie(this, "mov1.mp4");
 	movie2 = new Movie(this, "mov2.mp4");
+	movie3 = new Movie(this, "mov3.mp4");
+	movie4 = new Movie(this, "mov4.mp4");
+	movie5 = new Movie(this, "mov5.mp4");
+
 	currentMovie = movie1;
 	currentMovie.loop();
 
@@ -384,9 +391,9 @@ void draw()
 
  		if (context.isTrackingSkeleton(userList[i]))
  		{
-			stroke(color(255, 0, 0));
-			strokeWeight(6);
-			drawSkeleton(userList[i]);
+ 			stroke(color(255, 0, 0));
+ 			strokeWeight(6);
+ 			drawSkeleton(userList[i]);
  		}  
 
 
@@ -418,14 +425,29 @@ void draw()
   		{
   			histories[j].clear();
   		}
-  		
-  		movie1.loop();
-  		movie2.pause();
-		currentMovie = movie1;
+  		currentMovie.pause();
+  		currentMovie = movie4;
+		currentMovie.loop();
+		movie1.jump(0.0);
 
-		arduino.digitalWrite(pinMap[PIN_PROJECTOR], off);
+
+  		arduino.digitalWrite(pinMap[PIN_PROJECTOR], off);
   	}
 
+  	float md = currentMovie.duration();
+  	float mt = currentMovie.time();
+
+  	if (md-mt < 0.05)
+  	{
+  		if (currentMovie == movie4)
+  		{
+  			currentMovie.pause();
+  			currentMovie.jump(0.0);
+
+  			currentMovie = movie1;
+			currentMovie.loop();
+  		}
+  	}
   }
 
   if (usersInSpot > 1)
@@ -434,8 +456,12 @@ void draw()
   	if (state != STATE_MORE_THAN_ONE)
   	{
   		state = STATE_MORE_THAN_ONE;
-  		//TODO: movie for more than one
-		arduino.digitalWrite(pinMap[PIN_PROJECTOR], off);
+
+   		currentMovie.pause();
+  		currentMovie = movie3;
+		currentMovie.loop();
+
+  		arduino.digitalWrite(pinMap[PIN_PROJECTOR], off);
   	}
   	
   }
@@ -445,12 +471,27 @@ void draw()
   	if (state != STATE_IN_SPOT)
   	{
   		state = STATE_IN_SPOT;
-  		
-  		movie1.pause();
-  		movie2.loop();
-  		currentMovie = movie2;
-		
-		arduino.digitalWrite(pinMap[PIN_PROJECTOR], on);
+
+  		currentMovie.pause();
+  		currentMovie = movie5;
+		currentMovie.loop();
+		movie2.jump(0.0);
+
+  		arduino.digitalWrite(pinMap[PIN_PROJECTOR], on);
+  	}
+
+  	float md = currentMovie.duration();
+  	float mt = currentMovie.time();
+  	if (md-mt < 0.05)
+  	{
+  		if (currentMovie==movie5) 
+  		{
+  			currentMovie.pause();
+  			currentMovie.jump(0.0);
+
+  			currentMovie = movie2;
+			currentMovie.loop();
+  		}
   	}
 
   	updateJointHistory(userId);
@@ -646,14 +687,14 @@ boolean checkCircle(int joint_id) {
 avg.div(history.size());
 avgDist /= (history.size() - 1);
 
-    if (drawGui)
-    {
-    	PVector avgProj = new PVector();
-		context.convertRealWorldToProjective(avg, avgProj);
+if (drawGui)
+{
+	PVector avgProj = new PVector();
+	context.convertRealWorldToProjective(avg, avgProj);
 
-		fill(0, 255, 0);
-		rect(avgProj.x, avgProj.y, 5, 5);
-	}
+	fill(0, 255, 0);
+	rect(avgProj.x, avgProj.y, 5, 5);
+}
 
 float minDistFromAvg = 1000.0;
 float maxDistFromAvg = 0.0;
@@ -824,7 +865,7 @@ void drawJointDiff(PVector r1, PVector r2)
 // draw the skeleton with the selected joints
 void drawSkeleton(int userId)
 {
- 	if (!drawDepth) return;
+	if (!drawDepth) return;
   /*
   PVector jointPos = new PVector();
    context.getJointPositionSkeleton(userId,SimpleOpenNI.SKEL_NECK,jointPos);
@@ -1045,4 +1086,10 @@ void turnOffAll()
 void stop()
 {
 	context.close();
+	movie1.stop();
+	movie2.stop();
+	movie3.stop();
+	movie4.stop();
+	movie5.stop();		
+
 } 
