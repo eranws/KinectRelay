@@ -72,7 +72,7 @@
  		pinMap[PIN_BLENDER] 	= 12;
 
 
-		for(int i = 0; i < ARDUINO_PIN_COUNT; i++)
+ 		for(int i = 0; i < ARDUINO_PIN_COUNT; i++)
  		{
  			pinName[i] = "X (unassigned)";
 
@@ -97,22 +97,34 @@
  		}
  	}
 
- 	void addSequence(int pin, int[] s, int rep)
+ 	void addSequence(int pin, int[] s, int rep, int delay)
  	{
- 		if (seq.actions[pin].isEmpty())
+ 		int cumsum = millis() + delay;
+ 		for (int r=0; r<rep; r++)
  		{
- 			int cumsum = millis();
- 			for (int r=0; r<rep; r++)
+ 			for (int i=0; i<s.length; i++)
  			{
- 				for (int i=0; i<s.length; i++)
- 				{
 
- 					seq.actions[pin].add(new Action(i%2==0 ? on : off, cumsum));
- 					cumsum += s[i];
- 				}
+ 				seq.actions[pin].add(new Action(i%2==0 ? on : off, cumsum));
+ 				cumsum += s[i];
  			}
  		}
  	}
+
+ 	void addSequence(int pin, int[] s, int rep)
+ 	{
+ 		addSequence(pin, s, rep, 0);
+ 	}
+
+ 	void addSequenceSafe(int pin, int[] s, int rep)
+ 	{
+ 		if (seq.actions[pin].isEmpty())
+ 		{
+ 			addSequence(pin, s, rep, 0);	
+ 		}
+ 	}
+
+
 
  	void update()
  	{
@@ -160,9 +172,9 @@ public class ArduinoWrapper {
 		}
 
 		for (int i=0; i<ARDUINO_PIN_COUNT; i++)
- 		{
- 			pinState[i] = false;
-	 	}
+		{
+			pinState[i] = false;
+		}
 
 	}
 
@@ -309,6 +321,9 @@ final int STATE_MORE_THAN_ONE = 1;
 final int STATE_IN_SPOT = 2;
 int state = STATE_IDLE;
 
+final int demoTimeout = 15 * 1000; // 15 seconds
+int demoLastReset;
+
 Movie currentMovie;
 Movie movie1;
 Movie movie2;
@@ -418,7 +433,11 @@ void setup()
   	arduinoWrapper.pinMode(i, Arduino.OUTPUT);
   }
 
+  demoLastReset = millis();
+
   turnOffAll();
+  delay(500);
+  turnOffAllSafeAndSlow();
 
   noSmooth();
 
@@ -481,6 +500,7 @@ void draw()
  	if (usersInSpot == 0)
  	{
   	//run demo after timeout
+
   	if (state != STATE_IDLE)
   	{
   		state = STATE_IDLE;
@@ -493,8 +513,18 @@ void draw()
   		currentMovie.loop();
   		movie1.jump(0.0);
 
+  		demoLastReset = millis();
 
   		arduinoWrapper.digitalWrite(pinMap[PIN_PROJECTOR], off);
+  	}
+  	else
+  	{
+  		//println(demoLastReset);
+
+  		if (millis() - demoLastReset > demoTimeout)
+  		{
+  			runDemo();
+  		}
   	}
 
   	float md = currentMovie.duration();
@@ -540,7 +570,11 @@ void draw()
   		currentMovie.loop();
   		movie2.jump(0.0);
 
+  		turnOffAll();
+
   		arduinoWrapper.digitalWrite(pinMap[PIN_PROJECTOR], on);
+
+
   	}
 
   	float md = currentMovie.duration();
@@ -621,12 +655,12 @@ void draw()
 
   	text("FPS: " + nf(round(frameRate),2), 10, 10); 
 
-}
+  }
 
 
-seq.update();
+  seq.update();
 
-updateArduino();
+  updateArduino();
 
 } //end draw
 
@@ -768,31 +802,31 @@ boolean checkCircle(int joint_id) {
     	rect(p1.x, p1.y, 3, 3);
     }
 
-}
+  }
 
-avg.div(history.size());
-avgDist /= (history.size() - 1);
+  avg.div(history.size());
+  avgDist /= (history.size() - 1);
 
-if (drawGui)
-{
-	PVector avgProj = new PVector();
-	context.convertRealWorldToProjective(avg, avgProj);
+  if (drawGui)
+  {
+   PVector avgProj = new PVector();
+   context.convertRealWorldToProjective(avg, avgProj);
 
-	fill(0, 255, 0);
-	rect(avgProj.x, avgProj.y, 5, 5);
-}
+   fill(0, 255, 0);
+   rect(avgProj.x, avgProj.y, 5, 5);
+ }
 
-float minDistFromAvg = 1000.0;
-float maxDistFromAvg = 0.0;
+ float minDistFromAvg = 1000.0;
+ float maxDistFromAvg = 0.0;
 
-for (int h=0; h < history.size(); h++)
-{
-	PVector r0 = history.get(h);
-	float dist = PVector.dist(r0, avg);
+ for (int h=0; h < history.size(); h++)
+ {
+   PVector r0 = history.get(h);
+   float dist = PVector.dist(r0, avg);
 
-	minDistFromAvg = min(minDistFromAvg, dist);
-	maxDistFromAvg = max(maxDistFromAvg, dist);
-}
+   minDistFromAvg = min(minDistFromAvg, dist);
+   maxDistFromAvg = max(maxDistFromAvg, dist);
+ }
 
   //println(minDistFromAvg, maxDistFromAvg);
 
@@ -943,7 +977,7 @@ void drawJointDiff(PVector r1, PVector r2)
     text(nf(int(rdiff.x), 4), int(pmean.x), int(pmean.y)-ts*4);
     text(nf(int(rdiff.y), 4), int(pmean.x), int(pmean.y)-ts*3);
     text(nf(int(rdiff.z), 4), int(pmean.x), int(pmean.y)-ts*2);
-}
+  }
 
 
 
@@ -978,7 +1012,7 @@ void drawSkeleton(int userId)
    context.drawLimb(userId, SimpleOpenNI.SKEL_TORSO, SimpleOpenNI.SKEL_RIGHT_HIP);
    context.drawLimb(userId, SimpleOpenNI.SKEL_RIGHT_HIP, SimpleOpenNI.SKEL_RIGHT_KNEE);
    context.drawLimb(userId, SimpleOpenNI.SKEL_RIGHT_KNEE, SimpleOpenNI.SKEL_RIGHT_FOOT);
-}
+ }
 
 
 
@@ -1099,7 +1133,7 @@ void updateArduino()
 		int[] s = new int[]{120, 120, 120, 120, 120, 120, 120, 120, 1000, 500};
 		int repeat = 2;
 
-		seq.addSequence(PIN_RAZOR, s, repeat);
+		seq.addSequenceSafe(PIN_RAZOR, s, repeat);
 	}
 
 	if (gestureState[GESTURE_RIGHT_HAND_HAIR] || gestureState[GESTURE_LEFT_HAND_HAIR])
@@ -1107,14 +1141,14 @@ void updateArduino()
 		//Hair Dryer:
 		int[] s = new int[]{3000, 1000};
 		int repeat = 4;
-		seq.addSequence(PIN_HAIR_DRYER, s, repeat);
+		seq.addSequenceSafe(PIN_HAIR_DRYER, s, repeat);
 	}
 
 	if (gestureState[GESTURE_RIGHT_HAND_FAR_FROM_BODY] || gestureState[GESTURE_LEFT_HAND_FAR_FROM_BODY])
 	{
 		int[] s = new int[]{750, 250, 125, 125, 125, 125};
 		int repeat = 4;
-		seq.addSequence(PIN_HAND_MIXER, s, repeat);
+		seq.addSequenceSafe(PIN_HAND_MIXER, s, repeat);
 	}
 
 	if (gestureState[GESTURE_TWO_HANDS_EARS])
@@ -1122,7 +1156,7 @@ void updateArduino()
 		//Radio:
 		int[] s = new int[]{500, 500, 2000, 1000};
 		int repeat = 2;
-		seq.addSequence(PIN_RADIO, s, repeat);
+		seq.addSequenceSafe(PIN_RADIO, s, repeat);
 	}
 
 	if (gestureState[GESTURE_RIGHT_HAND_CIRCLES] || gestureState[GESTURE_LEFT_HAND_CIRCLES])
@@ -1130,7 +1164,7 @@ void updateArduino()
 		//Stand Fan:
 		int[] s = new int[]{4000, 2000};
 		int repeat = 6;
-		seq.addSequence(PIN_VENTILATOR, s, repeat);
+		seq.addSequenceSafe(PIN_VENTILATOR, s, repeat);
 	}
 
 
@@ -1139,7 +1173,7 @@ void updateArduino()
 		//Vacuum:
 		int[] s = new int[]{500, 500, 500, 500, 1500, 500};
 		int repeat = 4;
-		seq.addSequence(PIN_VACUUM, s, repeat);
+		seq.addSequenceSafe(PIN_VACUUM, s, repeat);
 	}
 
 	if (gestureState[GESTURE_FULL_BODY_TWIST])
@@ -1147,27 +1181,262 @@ void updateArduino()
 		//Blender:
 		int[] s = new int[]{500, 500, 500, 500, 1000, 500};
 		int repeat = 4;
-		seq.addSequence(PIN_BLENDER, s, repeat);
+		seq.addSequenceSafe(PIN_BLENDER, s, repeat);
 	}
+}
+
+int demoIndex = 0;
+void runDemo()
+{
+
+  // 1 proj
+  // 2 razor
+  // 3 hair
+  // 4 mixer
+  // 5 radio
+  // 6 stand fan
+  // 7 vacuum
+  // 8 blender
+
+  if (demoIndex == 0) runDemo1();
+  if (demoIndex == 1) runDemo2();
+  if (demoIndex == 2) runDemo3();
+
+  demoIndex++;
+  demoIndex %= 3;
 
 }
 
+void runDemo1()
+{
+	println("rundemo1");
+
+	demoLastReset = millis() + (35 + 10) * 1000; // demo length, total 35 + 15 timeout
+
+	// [6 on]
+	// 4 (0.5 on 0.2 off) ,4 (0.5 on 0.2 off),4 (0.5 on 0.2 off),7 (2 on)
+	// 4 (0.5 on 0.2 off) ,4 (0.5 on 0.2 off),4 (0.5 on 0.2 off),7 (2 on)
+	// 4 (0.5 on 0.2 off) ,4 (0.5 on 0.2 off),4 (0.5 on 0.2 off),7 (2 on)
+	// [6 off]
+	// (total 12300)
+
+	{
+		int[] s = new int[]{12000, 300};
+		int repeat = 1;
+		seq.addSequence(PIN_VENTILATOR, s, repeat);
+	}
+	{	
+		int[] s = new int[]{500, 200, 500, 200, 500, 2200};
+		int repeat = 3;
+		seq.addSequence(PIN_HAND_MIXER, s, repeat, 0);
+	}
+	{	
+		int[] s = new int[]{2000, 2100};
+		int repeat = 3;
+		seq.addSequence(PIN_VACUUM, s, repeat, 2100);
+	}
+
+	/*
+	2 (0.2 on 0.2 off) ,4 (1 on),
+	2 (0.2 on 0.2 off) ,4 (1 on),
+	2 (0.2 on 0.2 off) ,4 (1 on), 
+	2 (0.2 on 0.2 off) ,4 (1 on),
+	(total 5600)
+	*/
+
+	{	
+		int[] s = new int[]{200, 1200};
+		int repeat = 4;
+		seq.addSequence(PIN_RAZOR, s, repeat, 12300);
+	}
+	{	
+		int[] s = new int[]{1000, 400};
+		int repeat = 4;
+		seq.addSequence(PIN_HAND_MIXER, s, repeat, 12300 + 400);
+	}
+
+	/*
+	2 (0.2 on 0.2 off) , 
+	2 (0.2 on 0.2 off) , 
+	2 (0.2 on 0.2 off) , 
+	2 (0.2 on 0.2 off) ,
+	2 (0.2 on 0.2 off) ,
+	3 (3 on)
+	(total 5000)
+	*/
+	{	
+		int[] s = new int[]{200, 200};
+		int repeat = 5;
+		seq.addSequence(PIN_RAZOR, s, repeat, 12300 + 5600);
+	}
+	{	
+		int[] s = new int[]{3000, 100};
+		int repeat = 4;
+		seq.addSequence(PIN_HAIR_DRYER, s, repeat, 12300 + 5600 + 2000);
+	}
+	
+	/*
+	4 (0.5 on 0.2 off) ,4 (0.5 on 0.2 off),4 (0.5 on 0.2 off),7 (2 on)
+	4 (0.5 on 0.2 off) ,4 (0.5 on 0.2 off),4 (0.5 on 0.2 off),7 (2 on)
+	4 (0.5 on 0.2 off) ,4 (0.5 on 0.2 off),4 (0.5 on 0.2 off),7 (2 on)
+	*/
+	{	
+		int[] s = new int[]{500, 200, 500, 200, 500, 2200};
+		int repeat = 3;
+		seq.addSequence(PIN_HAND_MIXER, s, repeat, 12300 + 5600 + 5000);
+	}
+	{	
+		int[] s = new int[]{2000, 2100};
+		int repeat = 3;
+		seq.addSequence(PIN_VACUUM, s, repeat, 12300 + 5600 + 5000 + 2100);
+	}
+
+
+	/*
+	2 (0.2 on 0.2 off) ,4 (1 on), 
+	2 (0.2 on 0.2 off) ,4 (1 on), 
+	2 (0.2 on 0.2 off) ,4 (1 on), 
+	2 (0.2 on 0.2 off) ,4 (1 on),
+	*/
+	{	
+		int[] s = new int[]{200, 200};
+		int repeat = 4;
+		seq.addSequence(PIN_RAZOR, s, repeat, 12300 + 5600 + 5000 + 12300);
+	}
+}
+
+void runDemo2()
+{
+	println("rundemo2");
+
+	demoLastReset = millis() + (22 + 10) * 1000; // demo length, total 35 + 15 timeout
+
+	// 5 (5 on)
+	// 2 (0.2 on, 0.7 off), 2 (0.2 on, 0.7 off), 2 (1 on)
+
+	{
+		int[] s = new int[]{5000, 1};
+		int repeat = 1;
+		seq.addSequence(PIN_RADIO, s, repeat);
+	}
+	{
+		int[] s = new int[]{200, 700, 200, 700, 1000, 1};
+		int repeat = 1;
+		seq.addSequence(PIN_RAZOR, s, repeat, 5000);
+	}
+
+	// 4 ( 0.3 on), 2 (0.3 on), 8 (0.3 on), 7 ( 1.5 on)
+	// 4 ( 0.3 on), 2 (0.3 on), 8 (0.3 on), 7 ( 1.5 on)
+	// 4 ( 0.3 on), 2 (0.3 on), 8 (0.3 on), 7 ( 1.5 on)
+	// 4 ( 0.3 on), 2 (0.3 on), 8 (0.3 on), 7 ( 1.5 on)
+	{
+		int[] s = new int[]{300, 2100};
+		int repeat = 4;
+		seq.addSequence(PIN_HAND_MIXER, s, repeat, 5000 + 2800);
+	}
+	{
+		int[] s = new int[]{300, 2100};
+		int repeat = 4;
+		seq.addSequence(PIN_RAZOR, s, repeat, 5000 + 2800 + 300);
+	}
+	{
+		int[] s = new int[]{300, 2100};
+		int repeat = 4;
+		seq.addSequence(PIN_BLENDER, s, repeat, 5000 + 2800 + 600);
+	}
+	{
+		int[] s = new int[]{1500, 900};
+		int repeat = 4;
+		seq.addSequence(PIN_VACUUM, s, repeat, 5000 + 2800 + 900);
+	}
+
+
+	// 3 ( 1 on), 2 (0.2 on, 0.7 off), 2 (0.2 on, 0.7 off), 2 (1 on)
+	{
+		int[] s = new int[]{1000, 1};
+		int repeat = 1;
+		seq.addSequence(PIN_HAIR_DRYER, s, repeat, 5000 + 2800 + 9600);
+	}
+	{
+		int[] s = new int[]{200, 700, 200, 700, 1000, 1};
+		int repeat = 1;
+		seq.addSequence(PIN_RAZOR, s, repeat, 5000 + 2800 + 9600 + 1000);
+	}
+}
+
+
+void runDemo3()
+{
+	println("rundemo3");
+
+	demoLastReset = millis() + (30 + 10) * 1000; // demo length, total 35 + 15 timeout
+
+	// 6 (3 on 2 off), 6 (3 on 2 off), 6 (3 on 2 off),
+  {
+    int[] s = new int[]{3000, 2000};
+    int repeat = 3;
+    seq.addSequence(PIN_VENTILATOR, s, repeat);
+  }
+
+	// 5 [on]
+	// 8 (0.3 on 0.2 off), 8 (0.3 on 0.2 off), 8 (0.3 on 0.2 off) ,8 (0.3 on 0.2 off), 8 (0.3 on 0.2 off)
+	// 8 (0.3 on 0.2 off), 8 (0.3 on 0.2 off), 8 (0.3 on 0.2 off) ,8 (0.3 on 0.2 off), 8 (0.3 on 0.2 off)
+	// 8 (0.3 on 0.2 off), 8 (0.3 on 0.2 off), 8 (0.3 on 0.2 off) ,8 (0.3 on 0.2 off), 8 (0.3 on 0.2 off)
+	// 5[off]
+	{
+    int[] s = new int[]{300, 200};
+    int repeat = 15;
+    seq.addSequence(PIN_BLENDER, s, repeat, 15000);
+  }
+  {
+    int[] s = new int[]{7500, 100};
+    int repeat = 1;
+    seq.addSequence(PIN_RADIO, s, repeat, 15000);
+  }
+
+  // 7 (3 on)
+	// 
+	// 2 ( 1 on), 4 (1 on), 3 (3 on)
+  {
+    int[] s = new int[]{3000, 1};
+    int repeat = 1;
+    seq.addSequence(PIN_VACUUM, s, repeat, 15000 + 7500);
+  }
+  {
+    int[] s = new int[]{1000, 1};
+    int repeat = 1;
+    seq.addSequence(PIN_RAZOR, s, repeat, 15000 + 7500 + 3000);
+  }
+  {
+    int[] s = new int[]{1000, 1};
+    int repeat = 1;
+    seq.addSequence(PIN_HAND_MIXER, s, repeat, 15000 + 7500 + 4000);
+  }
+  {
+    int[] s = new int[]{3000, 1};
+    int repeat = 1;
+    seq.addSequence(PIN_HAIR_DRYER, s, repeat, 15000 + 7500 + 5000);
+  }
+}
 void turnOffAll()
 {
-	//fast one
 	for (int i = 0; i <= 13; i++)
 	{
 		arduinoWrapper.digitalWrite(i, off);
 	}
-	delay(1000);
 
+	seq.clear();
+}
+
+void turnOffAllSafeAndSlow()
+{	
 	for (int i = 0; i <= 13; i++)
 	{
 		arduinoWrapper.digitalWrite(i, off);
 		delay(100);
 	}
-	seq.clear();
 }
+
 
 void stop()
 {
