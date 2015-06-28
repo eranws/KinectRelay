@@ -70,11 +70,28 @@
  		pinMap[PIN_VENTILATOR] 	= 10;
  		pinMap[PIN_VACUUM] 		= 11;
  		pinMap[PIN_BLENDER] 	= 12;
+
+
+		for(int i = 0; i < ARDUINO_PIN_COUNT; i++)
+ 		{
+ 			pinName[i] = "X (unassigned)";
+
+ 		}
+ 		pinName[pinMap[PIN_PROJECTOR]] = "Projector";
+
+ 		pinName[pinMap[PIN_RAZOR]] 		= "Razor";
+ 		pinName[pinMap[PIN_HAIR_DRYER]]	= "Hair Dryer";
+ 		pinName[pinMap[PIN_HAND_MIXER]]	= "Hand Mixer";
+ 		pinName[pinMap[PIN_RADIO]]		= "Radio";
+ 		pinName[pinMap[PIN_VENTILATOR]] = "Ventilator";
+ 		pinName[pinMap[PIN_VACUUM]] 	= "Vacuum";
+ 		pinName[pinMap[PIN_BLENDER]] 	= "Blender";
+
  	}
 
  	void clear()
  	{
-		for(int i = 0; i < PIN_COUNT; i++)
+ 		for(int i = 0; i < PIN_COUNT; i++)
  		{
  			actions[i].clear();
  		}
@@ -108,7 +125,7 @@
 				if (a.when < millis())
 				{
 					actions[i].remove(0);
-					arduino.digitalWrite(pinMap[i], a.what);
+					arduinoWrapper.digitalWrite(pinMap[i], a.what);
 				}
 			}
 		}
@@ -125,7 +142,52 @@
 
 Sequencer seq;
 
-Arduino arduino;
+public class ArduinoWrapper {
+	PApplet app;
+	Arduino realArduino;	
+	boolean connected = false;
+
+	boolean pinState[] = new boolean[ARDUINO_PIN_COUNT];
+
+	ArduinoWrapper(PApplet app)
+	{
+		String[] arduinoList = Arduino.list();
+
+		if (arduinoList.length > 0)
+		{
+			connected = true;
+			realArduino = new Arduino(app, arduinoList[0], 57600);
+		}
+
+		for (int i=0; i<ARDUINO_PIN_COUNT; i++)
+ 		{
+ 			pinState[i] = false;
+	 	}
+
+	}
+
+	void digitalWrite(int pin, int val)
+	{
+		if (connected)
+		{
+			realArduino.digitalWrite(pin, val);
+		}
+
+		pinState[pin] = (val == on);
+	}
+
+	void pinMode(int pin, int val)
+	{
+		if (connected)
+		{
+			realArduino.pinMode(pin, val);
+		}
+	}
+
+
+
+}
+ArduinoWrapper arduinoWrapper;
 
 final int on = Arduino.LOW; //inverted relay 
 final int off = Arduino.HIGH; //inverted relay
@@ -239,6 +301,8 @@ final int GESTURE_TWO_HANDS_EARS_MAX_Z = 100;
 boolean gestureState[] = new boolean[GESTURE_COUNT];
 String gestureName[] = new String[GESTURE_COUNT];
 
+final int ARDUINO_PIN_COUNT = 14;
+String pinName[] = new String[ARDUINO_PIN_COUNT];
 
 final int STATE_IDLE = 0;
 final int STATE_MORE_THAN_ONE = 1;
@@ -346,13 +410,12 @@ void setup()
 
 
   seq = new Sequencer();
+  arduinoWrapper = new ArduinoWrapper(this);
 
-  String[] arduinoList = Arduino.list();
 
-  arduino = new Arduino(this, arduinoList[0], 57600);
   for (int i = 0; i <= 13; i++)
   {
-  	arduino.pinMode(i, Arduino.OUTPUT);
+  	arduinoWrapper.pinMode(i, Arduino.OUTPUT);
   }
 
   turnOffAll();
@@ -363,7 +426,7 @@ void setup()
 
 void draw()
 {
-	//background(200, 0, 0);
+	background(0);
 
 	if (drawMovie)
 	{
@@ -427,11 +490,11 @@ void draw()
   		}
   		currentMovie.pause();
   		currentMovie = movie4;
-		currentMovie.loop();
-		movie1.jump(0.0);
+  		currentMovie.loop();
+  		movie1.jump(0.0);
 
 
-  		arduino.digitalWrite(pinMap[PIN_PROJECTOR], off);
+  		arduinoWrapper.digitalWrite(pinMap[PIN_PROJECTOR], off);
   	}
 
   	float md = currentMovie.duration();
@@ -445,7 +508,7 @@ void draw()
   			currentMovie.jump(0.0);
 
   			currentMovie = movie1;
-			currentMovie.loop();
+  			currentMovie.loop();
   		}
   	}
   }
@@ -457,11 +520,11 @@ void draw()
   	{
   		state = STATE_MORE_THAN_ONE;
 
-   		currentMovie.pause();
+  		currentMovie.pause();
   		currentMovie = movie3;
-		currentMovie.loop();
+  		currentMovie.loop();
 
-  		arduino.digitalWrite(pinMap[PIN_PROJECTOR], off);
+  		arduinoWrapper.digitalWrite(pinMap[PIN_PROJECTOR], off);
   	}
   	
   }
@@ -474,10 +537,10 @@ void draw()
 
   		currentMovie.pause();
   		currentMovie = movie5;
-		currentMovie.loop();
-		movie2.jump(0.0);
+  		currentMovie.loop();
+  		movie2.jump(0.0);
 
-  		arduino.digitalWrite(pinMap[PIN_PROJECTOR], on);
+  		arduinoWrapper.digitalWrite(pinMap[PIN_PROJECTOR], on);
   	}
 
   	float md = currentMovie.duration();
@@ -490,7 +553,7 @@ void draw()
   			currentMovie.jump(0.0);
 
   			currentMovie = movie2;
-			currentMovie.loop();
+  			currentMovie.loop();
   		}
   	}
 
@@ -526,7 +589,31 @@ void draw()
   		textAlign(LEFT, CENTER);
   		textSize(rectHeight);
   		text(gestureName[g], x, y + rectHeight/2);
+  	}
 
+
+  	for (int g=0; g < ARDUINO_PIN_COUNT; g++)
+  	{
+  		int rectHeight = 20;
+  		int rectWidth = 200;
+  		int rectX = 50;
+  		int rectY = 50;
+
+  		int x = 400 + rectX;
+  		int y = rectY + (rectHeight * 2) * g;
+
+  		color onColor = color(255, 0, 0);
+  		color offColor = color(50, 50, 50);
+
+  		fill(arduinoWrapper.pinState[g] ? onColor : offColor);
+  		stroke(0);
+
+  		rect(x, y, rectWidth, rectHeight);
+
+  		fill(255);
+  		textAlign(LEFT, CENTER);
+  		textSize(rectHeight);
+  		text(pinName[g], x, y + rectHeight/2);
   	}
 
   	fill(255);
@@ -534,7 +621,6 @@ void draw()
 
   	text("FPS: " + nf(round(frameRate),2), 10, 10); 
 
-//TODO draw 'arduino'
 }
 
 
@@ -1071,13 +1157,13 @@ void turnOffAll()
 	//fast one
 	for (int i = 0; i <= 13; i++)
 	{
-		arduino.digitalWrite(i, off);
+		arduinoWrapper.digitalWrite(i, off);
 	}
 	delay(1000);
 
 	for (int i = 0; i <= 13; i++)
 	{
-		arduino.digitalWrite(i, off);
+		arduinoWrapper.digitalWrite(i, off);
 		delay(100);
 	}
 	seq.clear();
