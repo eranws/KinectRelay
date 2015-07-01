@@ -1131,56 +1131,50 @@ void updateArduino()
 	if (gestureState[GESTURE_RIGHT_HAND_CHIN] || gestureState[GESTURE_LEFT_HAND_CHIN])
 	{
 		int[] s = new int[]{120, 120, 120, 120, 120, 120, 120, 120, 1000, 500};
-		int repeat = 2;
-
+		int repeat = 1;
 		seq.addSequenceSafe(PIN_RAZOR, s, repeat);
 	}
 
 	if (gestureState[GESTURE_RIGHT_HAND_HAIR] || gestureState[GESTURE_LEFT_HAND_HAIR])
 	{
-		//Hair Dryer:
 		int[] s = new int[]{3000, 1000};
-		int repeat = 4;
+		int repeat = 1;
 		seq.addSequenceSafe(PIN_HAIR_DRYER, s, repeat);
 	}
 
 	if (gestureState[GESTURE_RIGHT_HAND_FAR_FROM_BODY] || gestureState[GESTURE_LEFT_HAND_FAR_FROM_BODY])
 	{
 		int[] s = new int[]{750, 250, 125, 125, 125, 125};
-		int repeat = 4;
+		int repeat = 1;
 		seq.addSequenceSafe(PIN_HAND_MIXER, s, repeat);
 	}
 
 	if (gestureState[GESTURE_TWO_HANDS_EARS])
 	{
-		//Radio:
 		int[] s = new int[]{500, 500, 2000, 1000};
-		int repeat = 2;
+		int repeat = 1;
 		seq.addSequenceSafe(PIN_RADIO, s, repeat);
 	}
 
 	if (gestureState[GESTURE_RIGHT_HAND_CIRCLES] || gestureState[GESTURE_LEFT_HAND_CIRCLES])
 	{
-		//Stand Fan:
 		int[] s = new int[]{4000, 2000};
-		int repeat = 6;
+		int repeat = 1;
 		seq.addSequenceSafe(PIN_VENTILATOR, s, repeat);
 	}
 
 
 	if (gestureState[GESTURE_TWO_HANDS_GOING_UP])
 	{
-		//Vacuum:
 		int[] s = new int[]{500, 500, 500, 500, 1500, 500};
-		int repeat = 4;
+		int repeat = 1;
 		seq.addSequenceSafe(PIN_VACUUM, s, repeat);
 	}
 
 	if (gestureState[GESTURE_FULL_BODY_TWIST])
 	{
-		//Blender:
 		int[] s = new int[]{500, 500, 500, 500, 1000, 500};
-		int repeat = 4;
+		int repeat = 1;
 		seq.addSequenceSafe(PIN_BLENDER, s, repeat);
 	}
 }
