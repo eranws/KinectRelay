@@ -334,12 +334,12 @@ Movie movie5; // mov1 -> mov2
 
 boolean drawGui = false;
 boolean drawDepth = false;
-boolean drawMovie = true;
+boolean drawMovie = false;
 
 
 
 void movieEvent(Movie m) {
-	m.read();
+	if (drawMovie) m.read();
 }
 
 void setup()
