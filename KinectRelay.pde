@@ -285,8 +285,9 @@ final int GESTURE_RIGHT_HAND_CIRCLES = 7;
 final int GESTURE_LEFT_HAND_CIRCLES = 8;
 final int GESTURE_TWO_HANDS_GOING_UP = 9;
 final int GESTURE_FULL_BODY_TWIST = 10;
+final int GESTURE_HEAD_BOW = 11;
 
-final int GESTURE_COUNT = 11;
+final int GESTURE_COUNT = 12;
 
 
 
@@ -425,6 +426,8 @@ void setup()
   
   gestureName[GESTURE_TWO_HANDS_GOING_UP]  = "two hands going up";
   gestureName[GESTURE_FULL_BODY_TWIST] = "full body twist";
+
+  gestureName[GESTURE_HEAD_BOW] = "head bow";
 
 
 
@@ -880,7 +883,6 @@ boolean checkTwoHandsGoingUp() {
 }
 
 
-
 boolean checkFullBodyTwist() {
 
 	ArrayList<PVector> historyR = histories[SKEL_RIGHT_SHOULDER];
@@ -916,6 +918,48 @@ boolean checkFullBodyTwist() {
   return (avgAngle > 0.200); //minDistFromAvgAngle < THR
 }
 
+
+boolean checkHeadBow() {
+
+  ArrayList<PVector> history = histories[SKEL_HEAD];
+
+  if (history.size() < HISTORY_SIZE) {
+    return false;
+  }
+
+  float maxDown = 0;
+
+  float y0 = history.get(0).y;
+  float lowestY = 999.9;
+  int lowestIndex = 0;
+
+  for (int h=1; h < history.size(); h++)
+  {
+    float y = history.get(h).y;
+
+    maxDown = max(maxDown, y0 - y);
+    if (y < lowestY)
+    {
+      lowestY = y;
+      lowestIndex = h;
+    } 
+  }
+
+  float maxUp = 0;
+  for (int h=lowestIndex; h < history.size(); h++)
+  {
+    float y = history.get(h).y;
+
+    maxUp = max(maxUp, y - lowestY);
+  }  
+
+  //textSize(70);
+  //text(nf(int(maxDown),4), 100, 100);
+  //text(nf(int(maxUp),4), 100, 200);
+
+  
+  return (maxUp > 90 && maxDown > 90); //minDistFromAvgAngle < THR
+}
 
 void drawJoint(PVector real)
 {
@@ -1111,60 +1155,71 @@ void upsateGestureState()
     gestureState[GESTURE_FULL_BODY_TWIST] = checkFullBodyTwist();
   }
 
+  if (jointValid[SKEL_HEAD])
+  {
+    gestureState[GESTURE_HEAD_BOW] = checkHeadBow();
+  }
+
 }
 
 
 void updateArduino()
 {
-	if (gestureState[GESTURE_RIGHT_HAND_CHIN] || gestureState[GESTURE_LEFT_HAND_CHIN])
-	{
-		int[] s = new int[]{120, 120, 120, 120, 120, 120, 120, 120, 1000, 500};
-		int repeat = 1;
-		seq.addSequenceSafe(PIN_RAZOR, s, repeat);
-	}
+  if (gestureState[GESTURE_HEAD_BOW])
+  {
+    turnOffAllButProjector();
+    return;
+  }
 
-	if (gestureState[GESTURE_RIGHT_HAND_HAIR] || gestureState[GESTURE_LEFT_HAND_HAIR])
-	{
-		int[] s = new int[]{3000, 1000};
-		int repeat = 1;
-		seq.addSequenceSafe(PIN_HAIR_DRYER, s, repeat);
-	}
+  if (gestureState[GESTURE_RIGHT_HAND_CHIN] || gestureState[GESTURE_LEFT_HAND_CHIN])
+  {
+    int[] s = new int[]{120, 120, 120, 120, 120, 120, 120, 120, 1000, 500};
+    int repeat = 1;
+    seq.addSequenceSafe(PIN_RAZOR, s, repeat);
+  }
 
-	if (gestureState[GESTURE_RIGHT_HAND_FAR_FROM_BODY] || gestureState[GESTURE_LEFT_HAND_FAR_FROM_BODY])
-	{
-		int[] s = new int[]{750, 250, 125, 125, 125, 125};
-		int repeat = 1;
-		seq.addSequenceSafe(PIN_HAND_MIXER, s, repeat);
-	}
+  if (gestureState[GESTURE_RIGHT_HAND_HAIR] || gestureState[GESTURE_LEFT_HAND_HAIR])
+  {
+    int[] s = new int[]{3000, 1000};
+    int repeat = 1;
+    seq.addSequenceSafe(PIN_HAIR_DRYER, s, repeat);
+  }
 
-	if (gestureState[GESTURE_TWO_HANDS_EARS])
-	{
-		int[] s = new int[]{500, 500, 2000, 1000};
-		int repeat = 1;
-		seq.addSequenceSafe(PIN_RADIO, s, repeat);
-	}
+  if (gestureState[GESTURE_RIGHT_HAND_FAR_FROM_BODY] || gestureState[GESTURE_LEFT_HAND_FAR_FROM_BODY])
+  {
+    int[] s = new int[]{750, 250, 125, 125, 125, 125};
+    int repeat = 1;
+    seq.addSequenceSafe(PIN_HAND_MIXER, s, repeat);
+  }
 
-	if (gestureState[GESTURE_RIGHT_HAND_CIRCLES] || gestureState[GESTURE_LEFT_HAND_CIRCLES])
-	{
-		int[] s = new int[]{4000, 2000};
-		int repeat = 1;
-		seq.addSequenceSafe(PIN_VENTILATOR, s, repeat);
-	}
+  if (gestureState[GESTURE_TWO_HANDS_EARS])
+  {
+    int[] s = new int[]{500, 500, 2000, 1000};
+    int repeat = 1;
+    seq.addSequenceSafe(PIN_RADIO, s, repeat);
+  }
+
+  if (gestureState[GESTURE_RIGHT_HAND_CIRCLES] || gestureState[GESTURE_LEFT_HAND_CIRCLES])
+  {
+    int[] s = new int[]{4000, 2000};
+    int repeat = 1;
+    seq.addSequenceSafe(PIN_VENTILATOR, s, repeat);
+  }
 
 
-	if (gestureState[GESTURE_TWO_HANDS_GOING_UP])
-	{
-		int[] s = new int[]{500, 500, 500, 500, 1500, 500};
-		int repeat = 1;
-		seq.addSequenceSafe(PIN_VACUUM, s, repeat);
-	}
+  if (gestureState[GESTURE_TWO_HANDS_GOING_UP])
+  {
+    int[] s = new int[]{500, 500, 500, 500, 1500, 500};
+    int repeat = 1;
+    seq.addSequenceSafe(PIN_VACUUM, s, repeat);
+  }
 
-	if (gestureState[GESTURE_FULL_BODY_TWIST])
-	{
-		int[] s = new int[]{500, 500, 500, 500, 1000, 500};
-		int repeat = 1;
-		seq.addSequenceSafe(PIN_BLENDER, s, repeat);
-	}
+  if (gestureState[GESTURE_FULL_BODY_TWIST])
+  {
+    int[] s = new int[]{500, 500, 500, 500, 1000, 500};
+    int repeat = 1;
+    seq.addSequenceSafe(PIN_BLENDER, s, repeat);
+  }
 }
 
 int demoIndex = 0;
@@ -1400,15 +1455,30 @@ void runDemo3()
     seq.addSequence(PIN_HAIR_DRYER, s, repeat, 15000 + 7500 + 5000);
   }
 }
+
 void turnOffAll()
 {
-	for (int i = 0; i <= 13; i++)
-	{
-		arduinoWrapper.digitalWrite(i, off);
-	}
+  for (int i = 0; i <= 13; i++)
+  {
+    arduinoWrapper.digitalWrite(i, off);
+  }
 
-	seq.clear();
+  seq.clear();
 }
+
+void turnOffAllButProjector()
+{
+  for (int i = 0; i <= 13; i++)
+  {
+    if (i != pinMap[PIN_PROJECTOR])
+    {
+      arduinoWrapper.digitalWrite(i, off);      
+    }
+  }
+
+  seq.clear();
+}
+
 
 void turnOffAllSafeAndSlow()
 {	
