@@ -893,9 +893,6 @@ boolean checkFullBodyTwist() {
 
   // check for enough movement
   float avgAngle = 0.0f;
-  float minAbsAngle = 999.9f;
-
-  float[] angles = new float[HISTORY_SIZE-1];
 
   for (int h=1; h < historyR.size(); h++)
   {
@@ -908,28 +905,15 @@ boolean checkFullBodyTwist() {
   	PVector rdiff0 = PVector.sub(r0, l0);
   	PVector rdiff1 = PVector.sub(r1, l1);
 
-  	float angle = PVector.angleBetween(rdiff0, rdiff1);
-
-  	avgAngle += angle;
-  	minAbsAngle = min(minAbsAngle, angle);
-  	angles[h-1] = angle;
+  	avgAngle = PVector.angleBetween(rdiff0, rdiff1);
   }
   avgAngle /= (HISTORY_SIZE - 1);
 
-  float minDistFromAvgAngle = 999.9f;
-
-  for (int i=0; i < angles.length; i++)
-  {
-  	float diff = abs(angles[i] - avgAngle);
-  	minDistFromAvgAngle = min(minDistFromAvgAngle, diff);
-  }
-
-
   //println(minDistFromAvgAngle);
-
-  return false; //minDistFromAvgAngle < THR
-
-
+  //textSize(100);
+  //text(nf(int(avgAngle*1000),4), 100, 100);
+  
+  return (avgAngle > 0.200); //minDistFromAvgAngle < THR
 }
 
 
@@ -1120,8 +1104,13 @@ void upsateGestureState()
 
 
 		gestureState[GESTURE_TWO_HANDS_GOING_UP] = checkTwoHandsGoingUp();
-		gestureState[GESTURE_FULL_BODY_TWIST] = checkFullBodyTwist();
 	}
+
+  if (jointValid[SKEL_HEAD] && jointValid[SKEL_RIGHT_SHOULDER] && jointValid[SKEL_LEFT_SHOULDER])
+  {
+    gestureState[GESTURE_FULL_BODY_TWIST] = checkFullBodyTwist();
+  }
+
 }
 
 
