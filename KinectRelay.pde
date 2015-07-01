@@ -37,8 +37,7 @@
 
 
  PVector spot = new PVector(0, 0, 2500);
- float spotRadiusMin = 300;
- float spotRadiusMax = 400;
+ float spotRadiusMin = 450;
 
  final int PIN_RAZOR		= 0;
  final int PIN_HAIR_DRYER	= 1; 
