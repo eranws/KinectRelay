@@ -205,8 +205,8 @@ public class ArduinoWrapper {
 }
 ArduinoWrapper arduinoWrapper;
 
-final int on = Arduino.LOW; //inverted relay 
-final int off = Arduino.HIGH; //inverted relay
+final int on = Arduino.HIGH; 
+final int off = Arduino.LOW;
 
 
 SimpleOpenNI  context;
