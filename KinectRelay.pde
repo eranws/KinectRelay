@@ -746,6 +746,10 @@ boolean checkCircle(int joint_id) {
 
  float minDistFromAvg = 1000.0;
  float maxDistFromAvg = 0.0;
+ 
+ float avgDistFromAvgX = 0.0;
+ float avgDistFromAvgY = 0.0;
+ float avgDistFromAvgZ = 0.0;
 
  for (int h=0; h < history.size(); h++)
  {
@@ -754,7 +758,20 @@ boolean checkCircle(int joint_id) {
 
    minDistFromAvg = min(minDistFromAvg, dist);
    maxDistFromAvg = max(maxDistFromAvg, dist);
+
+   float xAbsDist = abs(r0.x - avg.x);
+   float yAbsDist = abs(r0.y - avg.y);
+   float zAbsDist = abs(r0.z - avg.z);
+   
+   avgDistFromAvgX += xAbsDist / history.size();
+   avgDistFromAvgY += yAbsDist / history.size();
+   avgDistFromAvgZ += zAbsDist / history.size();
  }
+
+  // textSize(20);
+  // text(nf(avgDistFromAvgX, 1, 2), 800, 100 + (joint_id-3)*40);
+  // text(nf(avgDistFromAvgY, 1, 2), 900, 100 + (joint_id-3)*40);
+  // text(nf(avgDistFromAvgZ, 1, 2), 1000, 100 + (joint_id-3)*40);
 
   //println(minDistFromAvg, maxDistFromAvg);
 
@@ -762,6 +779,9 @@ boolean checkCircle(int joint_id) {
   	&& minDistFromAvg > 20
   	&& maxDistFromAvg / (minDistFromAvg+0.001) < 3
   	&& angleOK
+    && avgDistFromAvgX > 60 // limit to xy plane, avoid operation from full-body-twist
+    && avgDistFromAvgY > 60 // limit to xy plane, avoid operation from full-body-twist
+
   	);
 }
 
