@@ -326,7 +326,7 @@ final int STATE_MORE_THAN_ONE = 1;
 final int STATE_IN_SPOT = 2;
 int state = STATE_IDLE;
 
-final int demoTimeout = 15 * 1000; // 15 seconds
+final int demoTimeout = 7 * 1000; // milliseconds
 int demoLastReset;
 
 
