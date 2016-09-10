@@ -625,20 +625,20 @@ boolean checkHandFar(float diffZ)
 	return  (diffZ > GESTURE_HAND_FAR_FROM_BODY_MIN_Z);
 }
 
-boolean checkHandChin(float diffX, float diffY, float diffZ, float diffXother, float diffYother, float diffZother)
+boolean checkHandChin(float diffX, float diffY, float diffZ, float diffXother, float diffYother, float diffZother, boolean otherHandValid)
 {
 	return (diffZ > 0 && diffZ < GESTURE_HAND_CHIN_MAX_Z 
 		&& abs(diffX) < GESTURE_HAND_CHIN_MAX_X
 		&& diffY > GESTURE_HAND_CHIN_MIN_Y
 		&& diffY < GESTURE_HAND_CHIN_MAX_Y
 
-		&& diffYother > GESTURE_HAND_CHIN_MAX_Y
+		&& (!otherHandValid || diffYother > GESTURE_HAND_CHIN_MAX_Y) // don't check if other hand not valid
 		);
 
   //  otherHandZ ???
 }
 
-boolean checkHandHair(float diffX, float diffY, float diffZ, float diffXother, float diffYother, float diffZother)
+boolean checkHandHair(float diffX, float diffY, float diffZ, float diffXother, float diffYother, float diffZother, boolean otherHandValid)
 {
 	return (abs(diffZ) < GESTURE_HAND_HAIR_MAX_Z
 		&& diffX > GESTURE_HAND_HAIR_MIN_X
@@ -647,7 +647,7 @@ boolean checkHandHair(float diffX, float diffY, float diffZ, float diffXother, f
 		&& diffY > GESTURE_HAND_HAIR_MIN_Y
 		&& diffY < GESTURE_HAND_HAIR_MAX_Y
 
-		&& diffYother > GESTURE_HAND_CHIN_MAX_Y
+		&& (!otherHandValid || diffYother > GESTURE_HAND_CHIN_MAX_Y) // don't check if other hand not valid
 		);
 }
 
@@ -1083,15 +1083,17 @@ void upsateGestureState()
 		if (rSteady)
 		{
 			gestureState[GESTURE_RIGHT_HAND_FAR_FROM_BODY] = checkHandFar(dr.z);
-			gestureState[GESTURE_RIGHT_HAND_CHIN] = checkHandChin(dr.x, dr.y, dr.z, dl.x, dl.y, dl.z);
-			gestureState[GESTURE_RIGHT_HAND_HAIR] = checkHandHair(dr.x, dr.y, dr.z, dl.x, dl.y, dl.z);
+      boolean otherHandValid = jointValid[SKEL_LEFT_HAND];
+			gestureState[GESTURE_RIGHT_HAND_CHIN] = checkHandChin(dr.x, dr.y, dr.z, dl.x, dl.y, dl.z, otherHandValid);
+			gestureState[GESTURE_RIGHT_HAND_HAIR] = checkHandHair(dr.x, dr.y, dr.z, dl.x, dl.y, dl.z, otherHandValid);
 		}
 
 		if (lSteady)
 		{
 			gestureState[GESTURE_LEFT_HAND_FAR_FROM_BODY] = checkHandFar(dl.z);
-			gestureState[GESTURE_LEFT_HAND_CHIN] = checkHandChin(dl.x, dl.y, dl.z, dr.x, dr.y, dr.z);
-			gestureState[GESTURE_LEFT_HAND_HAIR] = checkHandHair(-dl.x, dl.y, dl.z, dr.x, dr.y, dr.z);
+      boolean otherHandValid = jointValid[SKEL_RIGHT_HAND];      
+			gestureState[GESTURE_LEFT_HAND_CHIN] = checkHandChin(dl.x, dl.y, dl.z, dr.x, dr.y, dr.z, otherHandValid);
+			gestureState[GESTURE_LEFT_HAND_HAIR] = checkHandHair(-dl.x, dl.y, dl.z, dr.x, dr.y, dr.z, otherHandValid);
 		}
 
 		if (lSteady && rSteady)
