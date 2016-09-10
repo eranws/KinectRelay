@@ -205,8 +205,8 @@ public class ArduinoWrapper {
 }
 ArduinoWrapper arduinoWrapper;
 
-final int on = Arduino.HIGH; 
-final int off = Arduino.LOW;
+final int off = Arduino.HIGH; 
+final int on = Arduino.LOW;
 
 
 SimpleOpenNI  context;
