@@ -836,15 +836,17 @@ boolean checkFullBodyTwist() {
   	PVector rdiff0 = PVector.sub(r0, l0);
   	PVector rdiff1 = PVector.sub(r1, l1);
 
-  	avgAngle = PVector.angleBetween(rdiff0, rdiff1);
+  	avgAngle += PVector.angleBetween(rdiff0, rdiff1);
+
   }
   avgAngle /= (HISTORY_SIZE - 1);
 
   //println(minDistFromAvgAngle);
   //textSize(100);
-  //text(nf(int(avgAngle*1000),4), 100, 100);
+  //text(nf(int(avgAngle*1000), 1), 100, 100);
+  //text(nf(avgAngle, 1, 2), 100, 100);
   
-  return (avgAngle > 0.200); //minDistFromAvgAngle < THR
+  return (avgAngle > 0.15); //minDistFromAvgAngle < THR
 }
 
 
