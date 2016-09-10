@@ -765,7 +765,7 @@ boolean checkCircle(int joint_id) {
   	);
 }
 
-boolean checkTwoHandsGoingUp() {
+boolean checkTwoHandsGoingUp(PVector headRightHand, PVector headLeftHand) {
 
 	ArrayList<PVector> historyR = histories[SKEL_RIGHT_HAND];
 	ArrayList<PVector> historyL = histories[SKEL_LEFT_HAND];
@@ -801,10 +801,13 @@ boolean checkTwoHandsGoingUp() {
 
 
   // println(rUpCount, lUpCount, rlSame);
-
+  // println(headRightHand.y, headLeftHand.y);
+  
   return (rUpCount * 2 > (HISTORY_SIZE - 1)
   	&& lUpCount * 2 > (HISTORY_SIZE - 1)
   	&& rlSame * 2 > (HISTORY_SIZE - 1)
+    && headRightHand.y < 0
+    && headLeftHand.y < 0
   	);
 }
 
@@ -1077,7 +1080,7 @@ void upsateGestureState()
 		gestureState[GESTURE_RIGHT_HAND_CIRCLES] = checkCircle(SKEL_RIGHT_HAND);
 		gestureState[GESTURE_LEFT_HAND_CIRCLES] = checkCircle(SKEL_LEFT_HAND);
 
-		gestureState[GESTURE_TWO_HANDS_GOING_UP] = checkTwoHandsGoingUp();
+		gestureState[GESTURE_TWO_HANDS_GOING_UP] = checkTwoHandsGoingUp(dr, dl);
 	}
 }
 
