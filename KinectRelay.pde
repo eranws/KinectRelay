@@ -12,7 +12,7 @@
 
 
  import SimpleOpenNI.*;
-
+ import ddf.minim.*;
  import processing.serial.*;
 
  import cc.arduino.*;
@@ -318,6 +318,8 @@ final int GESTURE_TWO_HANDS_EARS_MAX_Z = 100;
 boolean gestureState[] = new boolean[GESTURE_COUNT];
 String gestureName[] = new String[GESTURE_COUNT];
 
+int score = 0;
+
 final int ARDUINO_PIN_COUNT = 14;
 String pinName[] = new String[ARDUINO_PIN_COUNT];
 
@@ -334,12 +336,32 @@ int demoLastReset;
 boolean drawGui = false;
 boolean drawDepth = false;
 
+Minim minim;
+AudioSample smallCrowd;
+AudioSample bigCrowd;
+AudioSample lightSwitch;
+boolean audioLoaded = false;
+void setupAudio()
+{
+  minim = new Minim(this);
+  try {
+    smallCrowd = minim.loadSample("Small_crowd.mp3");
+    bigCrowd = minim.loadSample("big_crowd.mp3");
+    lightSwitch = minim.loadSample("light_switch.mp3");
+    audioLoaded = true;
+  } catch (Exception e) {
+    
+  }  
+}
+
 void setup()
 {
 	//size(640, 480);
 	size(displayWidth, displayHeight);
 
 	frameRate(60);
+
+  setupAudio();
 
 	context = new SimpleOpenNI(this);
 	if (context.isInit() == false)
@@ -484,6 +506,16 @@ void draw()
   		}
   		demoLastReset = millis();
 
+      if (score > 30)
+      {
+        if (audioLoaded) bigCrowd.trigger();
+      }
+      else if (score > 0)
+      {
+        if (audioLoaded) smallCrowd.trigger();
+      }
+      score = 0;
+
   		arduinoWrapper.digitalWrite(pinMap[PIN_PROJECTOR], off);
   	}
   	else
@@ -515,13 +547,35 @@ void draw()
   	{
   		state = STATE_IN_SPOT;
 
-  		turnOffAll();
+    	turnOffAll();
 
-  		arduinoWrapper.digitalWrite(pinMap[PIN_PROJECTOR], on);
+      if (audioLoaded) {
+        bigCrowd.stop();
+        smallCrowd.stop();
+        lightSwitch.trigger();
+      }
+
+      {
+        // turn projector on with delay
+        int projectorDelay = 200;
+        int[] s = new int[]{99999};
+        int repeat = 1;
+        seq.addSequence(PIN_PROJECTOR, s, repeat, projectorDelay);
+      }
+
   	}
 
   	updateJointHistory(userId);
   	upsateGestureState();
+
+  	for (int i=0; i<GESTURE_COUNT; i++)
+ 	  {
+ 		  if(gestureState[i]) {
+         ++score; // note: this gets updated every frame, not on every finished gesture
+       }
+   	}
+
+    
   }
 
 
