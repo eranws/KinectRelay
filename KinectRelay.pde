@@ -292,7 +292,7 @@ final int GESTURE_COUNT = 12;
 
 
 /// GESTURE thresholds
-final int GESTURE_HAND_FAR_FROM_BODY_MIN_Z = 500; //mm. todo slider
+final int GESTURE_HAND_FAR_FROM_BODY_MIN_Z = 350; //mm. todo slider
 
 
 final int GESTURE_HAND_CHIN_MAX_X = 100;
