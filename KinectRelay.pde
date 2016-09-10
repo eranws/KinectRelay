@@ -620,10 +620,9 @@ boolean checkSteady(int joint_id) {
   return avgDist < 40;
 }
 
-boolean checkHandFar(float diffZ, float diffZother)
+boolean checkHandFar(float diffZ)
 {
 	return  (diffZ > GESTURE_HAND_FAR_FROM_BODY_MIN_Z);
-	//  diffZother ???
 }
 
 boolean checkHandChin(float diffX, float diffY, float diffZ, float diffXother, float diffYother, float diffZother)
@@ -1030,57 +1029,58 @@ void updateJointHistory(int userId)
 
 void upsateGestureState()
 {	
-	if (jointValid[SKEL_HEAD] && jointValid[SKEL_RIGHT_HAND] && jointValid[SKEL_LEFT_HAND])
-	{    	
-		float diffXL = jointPos[SKEL_HEAD].x - jointPos[SKEL_LEFT_HAND].x;
-		float diffYL = jointPos[SKEL_HEAD].y - jointPos[SKEL_LEFT_HAND].y;
-		float diffZL = jointPos[SKEL_HEAD].z - jointPos[SKEL_LEFT_HAND].z;
+	if (jointValid[SKEL_HEAD])
+	{
+    gestureState[GESTURE_HEAD_BOW] = checkHeadBow();
 
-		float diffXR = jointPos[SKEL_HEAD].x - jointPos[SKEL_RIGHT_HAND].x;
-		float diffYR = jointPos[SKEL_HEAD].y - jointPos[SKEL_RIGHT_HAND].y;
-		float diffZR = jointPos[SKEL_HEAD].z - jointPos[SKEL_RIGHT_HAND].z;
+    if (jointValid[SKEL_RIGHT_SHOULDER] && jointValid[SKEL_LEFT_SHOULDER])
+    {
+      gestureState[GESTURE_FULL_BODY_TWIST] = checkFullBodyTwist();
+    }
+  
 
-		boolean rSteady = checkSteady(SKEL_RIGHT_HAND);
-		boolean lSteady = checkSteady(SKEL_LEFT_HAND);
+    boolean rSteady = false;
+    boolean lSteady = false;
+ 		PVector dr = new PVector();
+ 		PVector dl = new PVector();
+
+	  if (jointValid[SKEL_RIGHT_HAND])
+    {
+		  rSteady = checkSteady(SKEL_RIGHT_HAND);
+      dr = PVector.sub(jointPos[SKEL_HEAD], jointPos[SKEL_RIGHT_HAND]);
+    }
+    if (jointValid[SKEL_LEFT_HAND])
+    {
+		  lSteady = checkSteady(SKEL_LEFT_HAND);
+      dl = PVector.sub(jointPos[SKEL_HEAD], jointPos[SKEL_LEFT_HAND]);
+    }
 
 		if (rSteady)
 		{
-			gestureState[GESTURE_RIGHT_HAND_FAR_FROM_BODY] = checkHandFar(diffZR, diffZL);
-			gestureState[GESTURE_RIGHT_HAND_CHIN] = checkHandChin(diffXR, diffYR, diffZR, diffXL, diffYL, diffZL);
-			gestureState[GESTURE_RIGHT_HAND_HAIR] = checkHandHair(diffXR, diffYR, diffZR, diffXL, diffYL, diffZL);
+			gestureState[GESTURE_RIGHT_HAND_FAR_FROM_BODY] = checkHandFar(dr.z);
+			gestureState[GESTURE_RIGHT_HAND_CHIN] = checkHandChin(dr.x, dr.y, dr.z, dl.x, dl.y, dl.z);
+			gestureState[GESTURE_RIGHT_HAND_HAIR] = checkHandHair(dr.x, dr.y, dr.z, dl.x, dl.y, dl.z);
 		}
 
 		if (lSteady)
 		{
-			gestureState[GESTURE_LEFT_HAND_FAR_FROM_BODY] = checkHandFar(diffZL, diffZR);
-			gestureState[GESTURE_LEFT_HAND_CHIN] = checkHandChin(diffXL, diffYL, diffZL, diffXR, diffYR, diffZR);
-			gestureState[GESTURE_LEFT_HAND_HAIR] = checkHandHair(-diffXL, diffYL, diffZL, diffXR, diffYR, diffZR);
+			gestureState[GESTURE_LEFT_HAND_FAR_FROM_BODY] = checkHandFar(dl.z);
+			gestureState[GESTURE_LEFT_HAND_CHIN] = checkHandChin(dl.x, dl.y, dl.z, dr.x, dr.y, dr.z);
+			gestureState[GESTURE_LEFT_HAND_HAIR] = checkHandHair(-dl.x, dl.y, dl.z, dr.x, dr.y, dr.z);
 		}
 
 		if (lSteady && rSteady)
 		{
-			gestureState[GESTURE_TWO_HANDS_EARS] = checkTwoHandsEars(diffXR, diffYR, diffZR, diffXL, diffYL, diffZL);
+			gestureState[GESTURE_TWO_HANDS_EARS] = checkTwoHandsEars(dr.x, dr.y, dr.z, dl.x, dl.y, dl.z);
 		}	
-
 
 		gestureState[GESTURE_RIGHT_HAND_CIRCLES] = checkCircle(SKEL_RIGHT_HAND);
 		gestureState[GESTURE_LEFT_HAND_CIRCLES] = checkCircle(SKEL_LEFT_HAND);
 
-
 		gestureState[GESTURE_TWO_HANDS_GOING_UP] = checkTwoHandsGoingUp();
 	}
-
-  if (jointValid[SKEL_HEAD] && jointValid[SKEL_RIGHT_SHOULDER] && jointValid[SKEL_LEFT_SHOULDER])
-  {
-    gestureState[GESTURE_FULL_BODY_TWIST] = checkFullBodyTwist();
-  }
-
-  if (jointValid[SKEL_HEAD])
-  {
-    gestureState[GESTURE_HEAD_BOW] = checkHeadBow();
-  }
-
 }
+
 
 
 void updateArduino()
