@@ -1,0 +1,12 @@
+{
+	"version": "0.1.0",
+	"command": "C:/Users/user/Documents/processing-2.2.1-windows64/processing-2.2.1/processing-java.exe",
+	"isShellCommand": true,
+	"showOutput": "never",
+	"args": [
+        "--force",
+		"--sketch=${workspaceRoot}",
+		"--output=${workspaceRoot}/build-tmp",
+		"--run"
+    ]
+}
