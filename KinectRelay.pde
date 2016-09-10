@@ -1141,7 +1141,7 @@ void updateArduino()
 
   if (gestureState[GESTURE_TWO_HANDS_EARS])
   {
-    int[] s = new int[]{500, 500, 2000, 1000};
+    int[] s = new int[]{5000, 1};
     int repeat = 1;
     seq.addSequenceSafe(PIN_RADIO, s, repeat);
   }
